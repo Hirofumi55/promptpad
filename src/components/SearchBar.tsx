@@ -17,7 +17,7 @@ export function SearchBar({ value, onChange }: Props) {
         style={{ color: 'var(--color-text-muted)' }}
       />
       <input
-        type="search"
+        type="text"
         value={value}
         onInput={(e) => onChange((e.target as HTMLInputElement).value)}
         placeholder="プロンプトを検索..."

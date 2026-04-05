@@ -109,11 +109,11 @@ export function App() {
     }
   }, [showEditor, isCreating, selectedId]);
 
-  function addToast(message: string) {
+  const addToast = useCallback((message: string) => {
     const id = crypto.randomUUID();
     setToasts((prev) => [...prev, { id, message }]);
     setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== id)), TOAST_DURATION_MS + 300);
-  }
+  }, []);
 
   const handleNewNote = useCallback(() => {
     setSelectedId(null);
@@ -141,7 +141,7 @@ export function App() {
       }
       addToast('保存しました');
     },
-    [isCreating, selectedId, createNote, updateNote],
+    [isCreating, selectedId, createNote, updateNote, addToast],
   );
 
   const handleCancel = useCallback(() => {
@@ -154,7 +154,7 @@ export function App() {
       const ok = await copy(text, id);
       if (ok) addToast('コピーしました');
     },
-    [copy],
+    [copy, addToast],
   );
 
   // キーボードショートカット（グローバル）
@@ -193,9 +193,8 @@ export function App() {
       <main class="flex flex-1 overflow-hidden" style={{ height: 'calc(100vh - 56px)' }}>
         {/* 左パネル: メモ一覧（モバイルではエディタ表示中に隠す） */}
         <div
-          class={`flex flex-col border-r overflow-hidden shrink-0 ${showEditor ? 'hidden lg:flex' : 'flex w-full lg:w-auto'}`}
+          class={`flex flex-col border-r overflow-hidden shrink-0 lg:w-80 ${showEditor ? 'hidden lg:flex' : 'flex w-full'}`}
           style={{
-            width: '320px',
             borderColor: 'var(--color-border)',
             background: 'var(--color-bg-primary)',
           }}

@@ -22,10 +22,10 @@ export function useSearch(notes: Note[]) {
   }, []);
 
   const toggleFavoritesOnly = useCallback(() => {
-    setShowFavoritesOnly((prev) => {
-      if (!prev) setSelectedTag(null); // お気に入り有効化 → タグクリア
-      return !prev;
-    });
+    // setState updater 内で別の setState を呼ぶアンチパターンを避ける
+    // favorites ON時はタグをクリア、OFF時はタグは null のまま（無害）
+    setShowFavoritesOnly((prev) => !prev);
+    setSelectedTag(null);
   }, []);
 
   const clearFilters = useCallback(() => {

@@ -83,14 +83,23 @@ export function NoteList({
   const noFilter = !selectedTag && !showFavoritesOnly;
   const favCount = notes.filter((n) => n.isFavorite).length;
   const listRef = useRef<HTMLDivElement>(null);
-  const prevLengthRef = useRef(filteredNotes.length);
+  const isMountedRef = useRef(false);
+  const prevNotesLenRef = useRef(notes.length);
 
-  // 初回マウント時 & 件数増加時にスタガーアニメーション
+  // 初回マウント: 全カード入場アニメーション
+  // ノート追加時: 先頭1枚だけアニメーション
+  // 削除・フィルタ変更・ソート変更: アニメーションなし
   useEffect(() => {
-    const isAdded = filteredNotes.length > prevLengthRef.current;
-    prevLengthRef.current = filteredNotes.length;
-    animateCards(listRef.current, isAdded);
-  }, [filteredNotes.length]);
+    if (!isMountedRef.current) {
+      isMountedRef.current = true;
+      if (filteredNotes.length > 0) animateCards(listRef.current, false);
+    } else if (notes.length > prevNotesLenRef.current && filteredNotes.length > 0) {
+      animateCards(listRef.current, true);
+    }
+    prevNotesLenRef.current = notes.length;
+  // notes.length の変化のみを監視（filteredNotes の変化では再アニメートしない）
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [notes.length]);
 
   return (
     <div class="flex flex-col h-full">

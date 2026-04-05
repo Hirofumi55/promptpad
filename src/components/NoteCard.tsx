@@ -49,6 +49,10 @@ export function NoteCard({
     <>
       <div
         class="note-card rounded-xl p-3 cursor-pointer"
+        role="button"
+        tabIndex={0}
+        aria-label={`プロンプト: ${note.title}`}
+        aria-pressed={isSelected}
         style={{
           background: isSelected ? 'var(--color-accent-soft)' : 'var(--color-bg-card)',
           border: isSelected
@@ -57,6 +61,7 @@ export function NoteCard({
           boxShadow: 'var(--shadow-card)',
         }}
         onClick={onSelect}
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelect(); } }}
       >
         {/* タイトル行 */}
         <div class="flex items-start justify-between gap-2 mb-1">

@@ -1,43 +1,131 @@
-# Astro Starter Kit: Minimal
+# PromptPad — AIプロンプト専用メモ帳
 
-```sh
-pnpm create astro@latest -- --template minimal
+> 書く・貯める・すぐコピー。AIプロンプト管理に特化した静的Webアプリ。
+
+[![Deploy to Cloudflare Pages](https://github.com/Hirofumi55/promptpad/actions/workflows/deploy.yml/badge.svg)](https://github.com/Hirofumi55/promptpad/actions/workflows/deploy.yml)
+
+---
+
+## 概要
+
+**PromptPad** は、ChatGPT・Claude・Gemini など各種AIツール向けのプロンプトを効率的に作成・管理・再利用するための静的Webアプリです。
+
+- **即座に書ける** — オフライン対応・PWAインストール可能。思いついた瞬間に記録。
+- **即座にコピー** — ワンクリックでクリップボードへ。AIツールへシームレスに貼り付け。
+- **即座に見つかる** — 全文検索・タグフィルタ・お気に入りで蓄積したプロンプト資産を瞬時に呼び出し。
+
+## スクリーンショット
+
+| デスクトップ（ダークモード） | モバイル |
+|---|---|
+| 左パネルにメモ一覧、右パネルにエディタの2カラムレイアウト | フルスクリーンエディタ + ← 戻るボタン |
+
+## 技術スタック
+
+| カテゴリ | 技術 |
+|---------|------|
+| フレームワーク | [Astro](https://astro.build/) v6 (Static Output) |
+| UIアイランド | [Preact](https://preactjs.com/) (`client:only`) |
+| スタイリング | [Tailwind CSS](https://tailwindcss.com/) v4 (CSS-first) |
+| アニメーション | [GSAP](https://gsap.com/) v3 |
+| アイコン | [Lucide](https://lucide.dev/) (lucide-preact) |
+| PWA | [vite-plugin-pwa](https://vite-pwa-org.netlify.app/) + Workbox |
+| ホスティング | [Cloudflare Pages](https://pages.cloudflare.com/) |
+| パッケージマネージャ | pnpm |
+
+## 機能一覧
+
+- **プロンプト管理** — 作成・編集・削除・タイトル自動生成（本文先頭30文字）
+- **ワンクリックコピー** — Clipboard API + execCommandフォールバック
+- **タグ管理** — タグ付け・タグフィルタリング
+- **お気に入り** — ★マークでお気に入り登録・フィルタ
+- **検索** — タイトル・本文・タグを対象にインクリメンタルサーチ（300msデバウンス）
+- **ソート** — 更新日時 / 作成日時 / タイトル（あいうえお順）
+- **テーマ切替** — ダーク / ライトモード（FOUC防止済み）
+- **レスポンシブ** — デスクトップ2カラム / モバイルフルスクリーン
+- **キーボードショートカット** — `Ctrl/⌘+N` `Ctrl/⌘+S` `Ctrl/⌘+F` `Escape`
+- **PWA** — オフライン対応・ホーム画面インストール・自動更新
+
+## ローカル開発
+
+```bash
+# 依存パッケージインストール
+pnpm install
+
+# 開発サーバー起動（http://localhost:4321）
+pnpm dev
+
+# プロダクションビルド
+pnpm build
+
+# ビルド結果プレビュー
+pnpm preview
+
+# 型チェック
+pnpm lint
+
+# PWAアイコン再生成
+pnpm gen-icons
 ```
 
-> 🧑‍🚀 **Seasoned astronaut?** Delete this file. Have fun!
+## ディレクトリ構成
 
-## 🚀 Project Structure
-
-Inside of your Astro project, you'll see the following folders and files:
-
-```text
-/
+```
+promptpad/
 ├── public/
+│   ├── favicon.svg
+│   ├── icons/            # PWAアイコン（pnpm gen-icons で生成）
+│   ├── robots.txt
+│   └── sitemap.xml
+├── scripts/
+│   └── gen-icons.mjs     # PWAアイコン生成スクリプト（依存ゼロ）
 ├── src/
-│   └── pages/
-│       └── index.astro
-└── package.json
+│   ├── components/       # Preact コンポーネント
+│   │   ├── App.tsx       # ルートコンポーネント（状態管理・レイアウト）
+│   │   ├── NoteList.tsx  # メモ一覧・フィルタ・ソート
+│   │   ├── NoteCard.tsx  # 個別メモカード
+│   │   ├── NoteEditor.tsx# 作成・編集エディタ
+│   │   └── ...
+│   ├── hooks/            # カスタムフック
+│   │   ├── useNotes.ts   # CRUD + localStorage 永続化
+│   │   ├── useSearch.ts  # 検索・フィルタ・デバウンス
+│   │   ├── useClipboard.ts
+│   │   └── useTheme.ts
+│   ├── lib/
+│   │   ├── animations.ts # GSAPアニメーション
+│   │   ├── storage.ts    # localStorage 抽象化
+│   │   └── constants.ts
+│   ├── layouts/
+│   │   └── BaseLayout.astro  # SEO・OGP・FOUC防止
+│   └── types/
+│       └── note.ts
+└── .github/workflows/
+    └── deploy.yml        # Lint → Build → Cloudflare Pages
 ```
 
-Astro looks for `.astro` or `.md` files in the `src/pages/` directory. Each page is exposed as a route based on its file name.
+## データ永続化
 
-There's nothing special about `src/components/`, but that's where we like to put any Astro/React/Vue/Svelte/Preact components.
+全データは **localStorage** に保存されます。サーバーへの通信は一切ありません。
 
-Any static assets, like images, can be placed in the `public/` directory.
+| キー | 内容 |
+|-----|------|
+| `promptpad_notes` | メモ一覧（JSON配列） |
+| `promptpad_theme` | テーマ設定（`dark` / `light`） |
+| `promptpad_sort` | ソート順（`updatedAt` / `createdAt` / `title`） |
 
-## 🧞 Commands
+## Cloudflare Pages へのデプロイ
 
-All commands are run from the root of the project, from a terminal:
+1. リポジトリを fork またはクローン
+2. Cloudflare Pages でプロジェクト作成（ビルドコマンド: `pnpm build`、出力先: `dist`）
+3. GitHub リポジトリの **Settings → Secrets** に以下を追加:
 
-| Command                   | Action                                           |
-| :------------------------ | :----------------------------------------------- |
-| `pnpm install`             | Installs dependencies                            |
-| `pnpm dev`             | Starts local dev server at `localhost:4321`      |
-| `pnpm build`           | Build your production site to `./dist/`          |
-| `pnpm preview`         | Preview your build locally, before deploying     |
-| `pnpm astro ...`       | Run CLI commands like `astro add`, `astro check` |
-| `pnpm astro -- --help` | Get help using the Astro CLI                     |
+| Secret | 内容 |
+|--------|------|
+| `CLOUDFLARE_API_TOKEN` | Cloudflare API トークン |
+| `CLOUDFLARE_ACCOUNT_ID` | Cloudflare アカウントID |
 
-## 👀 Want to learn more?
+`main` ブランチへの push で自動デプロイされます。
 
-Feel free to check [our documentation](https://docs.astro.build) or jump into our [Discord server](https://astro.build/chat).
+## ライセンス
+
+MIT
