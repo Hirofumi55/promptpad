@@ -82,6 +82,15 @@ const {
       })();
     </script>
 
+    <!-- Service Worker 登録 -->
+    <script is:inline>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function () {
+          navigator.serviceWorker.register('/sw.js', { scope: '/' });
+        });
+      }
+    </script>
+
     <!--
       Google Fonts: Inter + Noto Sans JP
       preconnect で DNS解決を先行させFCPを改善

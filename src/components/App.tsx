@@ -149,6 +149,17 @@ export function App() {
     setSelectedId(null);
   }, []);
 
+  const handleDelete = useCallback(
+    (id: string) => {
+      deleteNote(id);
+      if (selectedId === id) {
+        setSelectedId(null);
+        setIsCreating(false);
+      }
+    },
+    [deleteNote, selectedId],
+  );
+
   const handleCopy = useCallback(
     async (text: string, id: string) => {
       const ok = await copy(text, id);
@@ -161,8 +172,11 @@ export function App() {
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       const mod = e.ctrlKey || e.metaKey;
+      const tag = (e.target as HTMLElement).tagName;
+      const isEditing = tag === 'INPUT' || tag === 'TEXTAREA';
+
       // Ctrl+N: 新規作成（テキスト入力中は除く）
-      if (mod && e.key === 'n' && (e.target as HTMLElement).tagName !== 'TEXTAREA') {
+      if (mod && e.key === 'n' && !isEditing) {
         e.preventDefault();
         handleNewNote();
       }
@@ -172,11 +186,8 @@ export function App() {
         (document.querySelector('[aria-label="プロンプトを検索"]') as HTMLElement)?.focus();
       }
       // Escape: エディタを閉じる（フォーカスがinput/textarea内でなければ）
-      if (e.key === 'Escape') {
-        const tag = (e.target as HTMLElement).tagName;
-        if (tag !== 'INPUT' && tag !== 'TEXTAREA') {
-          handleCancel();
-        }
+      if (e.key === 'Escape' && !isEditing) {
+        handleCancel();
       }
     };
     window.addEventListener('keydown', handler);
@@ -217,7 +228,7 @@ export function App() {
             onSelect={handleSelect}
             onCopy={handleCopy}
             onToggleFavorite={toggleFavorite}
-            onDelete={deleteNote}
+            onDelete={handleDelete}
             onNewNote={handleNewNote}
           />
         </div>
