@@ -28,7 +28,7 @@ export function CopyButton({ noteId, copiedId, onCopy }: Props) {
         onCopy();
       }}
       aria-label="プロンプトをコピー"
-      class="w-8 h-8 flex items-center justify-center rounded-lg"
+      class="w-10 h-10 lg:w-8 lg:h-8 flex items-center justify-center rounded-lg"
       style={{
         color: isCopied ? 'var(--color-success)' : 'var(--color-text-muted)',
         background: isCopied ? 'var(--color-accent-soft)' : 'transparent',

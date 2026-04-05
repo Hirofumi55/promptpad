@@ -1,5 +1,4 @@
 import { useState, useCallback, useEffect, useRef } from 'preact/hooks';
-import type { Note } from '../types/note';
 import { useNotes } from '../hooks/useNotes';
 import { useClipboard } from '../hooks/useClipboard';
 import { useSearch } from '../hooks/useSearch';
@@ -75,6 +74,10 @@ function ShortcutHelp() {
   );
 }
 
+// エディタの状態を単一の discriminated union で管理
+// selectedId + isCreating の二重管理を廃止し、不正状態を構造的に排除する
+type EditorMode = 'idle' | 'create' | 'edit';
+
 export function App() {
   const { notes, sortBy, createNote, updateNote, deleteNote, toggleFavorite, changeSortBy } = useNotes();
   const { copiedId, copy } = useClipboard();
@@ -90,24 +93,24 @@ export function App() {
     filtered,
   } = useSearch(notes);
 
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [isCreating, setIsCreating] = useState(false);
+  const [mode, setMode] = useState<EditorMode>('idle');
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
   const editorPanelRef = useRef<HTMLDivElement>(null);
 
-  const selectedNote: Note | null = notes.find((n) => n.id === selectedId) ?? null;
-  const showEditor = isCreating || selectedId !== null;
+  const editingNote = notes.find((n) => n.id === editingId) ?? null;
+  const showEditor = mode !== 'idle';
 
   // エディタが表示されたときにアニメーション
   useEffect(() => {
-    if (!showEditor) return;
+    if (mode === 'idle') return;
     const isMobile = window.innerWidth < 1024;
     if (isMobile) {
       animateEditorSlideUp(editorPanelRef.current);
     } else {
       animateEditorIn(editorPanelRef.current);
     }
-  }, [showEditor, isCreating, selectedId]);
+  }, [mode, editingId]);
 
   const addToast = useCallback((message: string) => {
     const id = crypto.randomUUID();
@@ -116,54 +119,60 @@ export function App() {
   }, []);
 
   const handleNewNote = useCallback(() => {
-    setSelectedId(null);
-    setIsCreating(true);
+    setMode('create');
+    setEditingId(null);
   }, []);
 
   const handleSelect = useCallback((id: string) => {
-    setIsCreating(false);
-    setSelectedId(id);
+    setMode('edit');
+    setEditingId(id);
   }, []);
 
   const handleBack = useCallback(() => {
-    setIsCreating(false);
-    setSelectedId(null);
+    setMode('idle');
+    setEditingId(null);
+  }, []);
+
+  const handleCancel = useCallback(() => {
+    setMode('idle');
+    setEditingId(null);
   }, []);
 
   const handleSave = useCallback(
     (data: { title: string; content: string; tags: string[] }) => {
-      if (isCreating) {
+      if (mode === 'create') {
         const note = createNote(data);
-        setIsCreating(false);
-        setSelectedId(note.id);
-      } else if (selectedId) {
-        updateNote(selectedId, data);
+        setMode('edit');
+        setEditingId(note.id);
+        addToast('作成しました');
+      } else if (mode === 'edit' && editingId) {
+        updateNote(editingId, data);
+        addToast('保存しました');
       }
-      addToast('保存しました');
     },
-    [isCreating, selectedId, createNote, updateNote, addToast],
+    [mode, editingId, createNote, updateNote, addToast],
   );
-
-  const handleCancel = useCallback(() => {
-    setIsCreating(false);
-    setSelectedId(null);
-  }, []);
 
   const handleDelete = useCallback(
     (id: string) => {
       deleteNote(id);
-      if (selectedId === id) {
-        setSelectedId(null);
-        setIsCreating(false);
+      if (editingId === id) {
+        setMode('idle');
+        setEditingId(null);
       }
+      addToast('削除しました');
     },
-    [deleteNote, selectedId],
+    [deleteNote, editingId, addToast],
   );
 
   const handleCopy = useCallback(
     async (text: string, id: string) => {
       const ok = await copy(text, id);
-      if (ok) addToast('コピーしました');
+      if (ok) {
+        addToast('コピーしました');
+      } else {
+        addToast('コピーに失敗しました');
+      }
     },
     [copy, addToast],
   );
@@ -197,11 +206,11 @@ export function App() {
   return (
     <div
       class="flex flex-col"
-      style={{ minHeight: '100vh', background: 'var(--color-bg-primary)' }}
+      style={{ minHeight: '100dvh', background: 'var(--color-bg-primary)' }}
     >
       <Header onNewNote={handleNewNote} />
 
-      <main class="flex flex-1 overflow-hidden" style={{ height: 'calc(100vh - 56px)' }}>
+      <main class="flex flex-1 overflow-hidden" style={{ height: 'calc(100dvh - 56px)' }}>
         {/* 左パネル: メモ一覧（モバイルではエディタ表示中に隠す） */}
         <div
           class={`flex flex-col border-r overflow-hidden shrink-0 lg:w-80 ${showEditor ? 'hidden lg:flex' : 'flex w-full'}`}
@@ -213,7 +222,7 @@ export function App() {
           <NoteList
             notes={notes}
             filteredNotes={filtered}
-            selectedId={selectedId}
+            selectedId={editingId}
             searchQuery={searchQuery}
             selectedTag={selectedTag}
             showFavoritesOnly={showFavoritesOnly}
@@ -241,7 +250,8 @@ export function App() {
         >
           {showEditor ? (
             <NoteEditor
-              note={isCreating ? null : selectedNote}
+              key={mode === 'create' ? '__create__' : (editingId ?? '__idle__')}
+              note={mode === 'create' ? null : editingNote}
               onSave={handleSave}
               onCancel={handleCancel}
               onBack={handleBack}

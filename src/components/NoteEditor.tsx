@@ -98,7 +98,15 @@ export function NoteEditor({ note, onSave, onCancel, onBack }: Props) {
 
       {/* タイトル */}
       <div class="px-4 pt-4">
+        <label
+          class="block text-xs font-medium mb-1"
+          style={{ color: 'var(--color-text-muted)' }}
+          for="note-title"
+        >
+          タイトル
+        </label>
         <input
+          id="note-title"
           ref={titleRef}
           type="text"
           value={title}
@@ -106,6 +114,7 @@ export function NoteEditor({ note, onSave, onCancel, onBack }: Props) {
           placeholder="無題のプロンプト"
           class="w-full text-lg font-semibold bg-transparent border-none outline-none"
           style={{ color: 'var(--color-text-primary)' }}
+          aria-label="タイトル"
         />
         <div
           class="mt-1 mb-3"
@@ -115,7 +124,15 @@ export function NoteEditor({ note, onSave, onCancel, onBack }: Props) {
 
       {/* テキストエリア */}
       <div class="flex-1 px-4 overflow-y-auto">
+        <label
+          class="block text-xs font-medium mb-1"
+          style={{ color: 'var(--color-text-muted)' }}
+          for="note-content"
+        >
+          プロンプト本文
+        </label>
         <textarea
+          id="note-content"
           ref={textareaRef}
           value={content}
           onInput={(e) => setContent((e.target as HTMLTextAreaElement).value)}
@@ -126,6 +143,7 @@ export function NoteEditor({ note, onSave, onCancel, onBack }: Props) {
             fontFamily: 'var(--font-sans)',
           }}
           rows={1}
+          aria-label="プロンプト本文"
         />
       </div>
 
@@ -174,9 +192,9 @@ export function NoteEditor({ note, onSave, onCancel, onBack }: Props) {
         </div>
       </div>
 
-      {/* 保存・キャンセル（デスクトップ用） */}
+      {/* 保存・キャンセル（デスクトップ専用 — モバイルはトップバーで操作） */}
       <div
-        class="px-4 py-3 flex justify-end gap-2 border-t shrink-0"
+        class="hidden lg:flex px-4 py-3 justify-end gap-2 border-t shrink-0"
         style={{ borderColor: 'var(--color-border)' }}
       >
         <button

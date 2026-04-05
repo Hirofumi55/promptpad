@@ -76,7 +76,7 @@ export function NoteCard({
             <button
               onClick={(e) => { e.stopPropagation(); onToggleFavorite(); }}
               aria-label={note.isFavorite ? 'お気に入り解除' : 'お気に入り登録'}
-              class="w-7 h-7 flex items-center justify-center rounded-lg transition-colors"
+              class="w-10 h-10 lg:w-7 lg:h-7 flex items-center justify-center rounded-lg transition-colors"
               style={{ color: note.isFavorite ? 'var(--color-favorite)' : 'var(--color-text-muted)' }}
             >
               <Star size={13} fill={note.isFavorite ? 'currentColor' : 'none'} />
@@ -91,7 +91,7 @@ export function NoteCard({
             <button
               onClick={(e) => { e.stopPropagation(); setShowDelete(true); }}
               aria-label="削除"
-              class="w-7 h-7 flex items-center justify-center rounded-lg transition-colors"
+              class="w-10 h-10 lg:w-7 lg:h-7 flex items-center justify-center rounded-lg transition-colors"
               style={{ color: 'var(--color-text-muted)' }}
             >
               <Trash2 size={13} />

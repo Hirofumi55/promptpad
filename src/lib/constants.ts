@@ -9,4 +9,3 @@ export const TOAST_DURATION_MS = 2000;
 export const SEARCH_DEBOUNCE_MS = 300;
 export const COPY_FEEDBACK_MS = 2000;
 export const TAG_MAX_DISPLAY = 3;
-export const CONTENT_PREVIEW_LINES = 2;
