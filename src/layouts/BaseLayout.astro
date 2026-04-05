@@ -1,0 +1,103 @@
+---
+export interface Props {
+  title?: string;
+  description?: string;
+}
+
+const {
+  title = 'PromptPad - AIプロンプト専用メモ帳 | 書く・貯める・すぐコピー',
+  description = 'AIプロンプトの作成・管理・ワンクリックコピーに特化した無料メモ帳アプリ。ChatGPT・Claude・Geminiなど、あらゆるAIツール向けプロンプトを効率的に管理。オフライン対応・PWA。',
+} = Astro.props;
+---
+
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0f172a" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#f8fafc" media="(prefers-color-scheme: light)" />
+
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <meta
+      name="keywords"
+      content="AIプロンプト,メモ帳,プロンプト管理,ChatGPT,Claude,Gemini,プロンプトエンジニアリング,PWA"
+    />
+    <meta name="author" content="PromptPad" />
+    <link rel="canonical" href="https://promptpad.pages.dev/" />
+
+    <!-- OGP -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://promptpad.pages.dev/" />
+    <meta property="og:title" content="PromptPad - AIプロンプト専用メモ帳" />
+    <meta
+      property="og:description"
+      content="AIプロンプトの作成・管理・ワンクリックコピー。書いて、貯めて、すぐ使える。"
+    />
+    <meta property="og:image" content="https://promptpad.pages.dev/og-image.png" />
+    <meta property="og:locale" content="ja_JP" />
+    <meta property="og:site_name" content="PromptPad" />
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="PromptPad - AIプロンプト専用メモ帳" />
+    <meta name="twitter:description" content="AIプロンプトの作成・管理・ワンクリックコピー。" />
+    <meta name="twitter:image" content="https://promptpad.pages.dev/og-image.png" />
+
+    <!-- Favicon -->
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="icon" href="/icons/icon-192.png" sizes="192x192" type="image/png" />
+    <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="/manifest.webmanifest" />
+
+    <!-- JSON-LD 構造化データ -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "PromptPad",
+        "description": "AIプロンプトの作成・管理・ワンクリックコピーに特化したメモ帳アプリ",
+        "url": "https://promptpad.pages.dev",
+        "applicationCategory": "UtilityApplication",
+        "operatingSystem": "All",
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "JPY"
+        },
+        "inLanguage": "ja",
+        "browserRequirements": "Requires JavaScript"
+      }
+    </script>
+
+    <!-- FOUC防止: 初期テーマをインラインスクリプトで即時適用 -->
+    <script is:inline>
+      (function () {
+        const t = localStorage.getItem('promptpad_theme') || 'dark';
+        document.documentElement.classList.toggle('dark', t === 'dark');
+        document.documentElement.setAttribute('data-theme', t);
+      })();
+    </script>
+
+    <!--
+      Google Fonts: Inter + Noto Sans JP
+      preconnect で DNS解決を先行させFCPを改善
+    -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,400;0,14..32,500;0,14..32,600;0,14..32,700&family=Noto+Sans+JP:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <slot />
+  </body>
+</html>
+
+<style is:global>
+  @import '../styles/global.css';
+</style>

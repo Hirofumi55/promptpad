@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://promptpad.pages.dev/sitemap.xml
