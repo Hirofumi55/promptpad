@@ -11,6 +11,8 @@
     "build": "astro build",
     "postbuild": "node scripts/check-og-image.mjs",
     "preview": "astro preview",
+    "test:e2e": "playwright test",
+    "test:e2e:remote": "PLAYWRIGHT_BASE_URL=https://promptpad-4yp.pages.dev playwright test",
     "astro": "astro",
     "lint": "tsc --noEmit",
     "gen-icons": "node scripts/gen-icons.mjs"
@@ -25,6 +27,7 @@
     "tailwindcss": "^4.2.2"
   },
   "devDependencies": {
+    "@playwright/test": "^1.59.1",
     "typescript": "^6.0.2"
   }
 }
