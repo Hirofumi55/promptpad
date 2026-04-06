@@ -45,11 +45,27 @@ export const storage = {
 
   getSortBy(): SortBy {
     const v = localStorage.getItem(STORAGE_KEYS.SORT);
-    return v === 'updatedAt' || v === 'createdAt' || v === 'title' ? v : 'updatedAt';
+    return v === 'updatedAt' || v === 'createdAt' || v === 'title' || v === 'manual' ? v : 'updatedAt';
   },
 
   setSortBy(sort: SortBy): void {
     localStorage.setItem(STORAGE_KEYS.SORT, sort);
+  },
+
+  getManualOrder(): string[] {
+    try {
+      const data = localStorage.getItem(STORAGE_KEYS.MANUAL_ORDER);
+      if (!data) return [];
+      const parsed: unknown = JSON.parse(data);
+      if (!Array.isArray(parsed)) return [];
+      return parsed.filter((v): v is string => typeof v === 'string');
+    } catch {
+      return [];
+    }
+  },
+
+  setManualOrder(order: string[]): void {
+    localStorage.setItem(STORAGE_KEYS.MANUAL_ORDER, JSON.stringify(order));
   },
 
   exportAll(): string {

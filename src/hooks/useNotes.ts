@@ -30,9 +30,19 @@ function updateNoteRecord(note: Note, data: NoteDraft): Note {
   };
 }
 
+/** manualOrder の ID リストから notes を順番に並べる（存在しない ID は無視、未収録は末尾） */
+function applyManualOrder(notes: Note[], order: string[]): Note[] {
+  const noteMap = new Map(notes.map((n) => [n.id, n]));
+  const ordered = order.filter((id) => noteMap.has(id)).map((id) => noteMap.get(id)!);
+  const inOrder = new Set(order);
+  const rest = notes.filter((n) => !inOrder.has(n.id));
+  return [...ordered, ...rest];
+}
+
 export function useNotes() {
   const [notes, setNotes] = useState<Note[]>(() => storage.getNotes());
   const [sortBy, setSortByState] = useState<SortBy>(() => storage.getSortBy());
+  const [manualOrder, setManualOrderState] = useState<string[]>(() => storage.getManualOrder());
 
   const commitNotes = useCallback((update: (current: Note[]) => Note[]) => {
     setNotes((current) => {
@@ -46,6 +56,12 @@ export function useNotes() {
     (data: NoteDraft): Note => {
       const newNote = createNoteRecord(data);
       commitNotes((current) => [newNote, ...current]);
+      // 手動順序の先頭に追加
+      setManualOrderState((prev) => {
+        const next = [newNote.id, ...prev];
+        storage.setManualOrder(next);
+        return next;
+      });
       return newNote;
     },
     [commitNotes],
@@ -63,6 +79,12 @@ export function useNotes() {
   const deleteNote = useCallback(
     (id: string): void => {
       commitNotes((current) => current.filter((note) => note.id !== id));
+      // 手動順序からも削除
+      setManualOrderState((prev) => {
+        const next = prev.filter((oid) => oid !== id);
+        storage.setManualOrder(next);
+        return next;
+      });
     },
     [commitNotes],
   );
@@ -80,18 +102,30 @@ export function useNotes() {
     [commitNotes],
   );
 
-  const changeSortBy = useCallback(
-    (sort: SortBy): void => {
-      storage.setSortBy(sort);
-      setSortByState(sort);
-    },
-    [],
-  );
+  const changeSortBy = useCallback((sort: SortBy): void => {
+    storage.setSortBy(sort);
+    setSortByState(sort);
+  }, []);
 
-  const sortedNotes = [...notes].sort((a, b) => {
-    if (sortBy === 'title') return a.title.localeCompare(b.title, 'ja');
-    return new Date(b[sortBy]).getTime() - new Date(a[sortBy]).getTime();
-  });
+  /**
+   * 手動並び替え: filteredNotes をD&Dで組み替えた後の新しい ID 配列を受け取り、
+   * 全ノートに対する manualOrder を再構築して保存する。
+   * D&D はフィルタなし時のみ有効なので、渡される ids は全ノートの ID と一致する。
+   */
+  const reorderNotes = useCallback((newIds: string[]): void => {
+    setManualOrderState(() => {
+      storage.setManualOrder(newIds);
+      return newIds;
+    });
+  }, []);
+
+  const sortedNotes =
+    sortBy === 'manual'
+      ? applyManualOrder(notes, manualOrder)
+      : [...notes].sort((a, b) => {
+          if (sortBy === 'title') return a.title.localeCompare(b.title, 'ja');
+          return new Date(b[sortBy]).getTime() - new Date(a[sortBy]).getTime();
+        });
 
   return {
     notes: sortedNotes,
@@ -101,5 +135,6 @@ export function useNotes() {
     deleteNote,
     toggleFavorite,
     changeSortBy,
+    reorderNotes,
   };
 }

@@ -86,7 +86,7 @@ function isEditableTarget(target: EventTarget | null): boolean {
 }
 
 export function App() {
-  const { notes, sortBy, createNote, updateNote, deleteNote, toggleFavorite, changeSortBy } = useNotes();
+  const { notes, sortBy, createNote, updateNote, deleteNote, toggleFavorite, changeSortBy, reorderNotes } = useNotes();
   const { copiedId, copy } = useClipboard();
   const {
     searchQuery,
@@ -239,6 +239,7 @@ export function App() {
             onToggleFavorite={toggleFavorite}
             onDelete={handleDelete}
             onNewNote={handleNewNote}
+            onReorder={reorderNotes}
           />
         </div>
 

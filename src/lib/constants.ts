@@ -2,6 +2,7 @@ export const STORAGE_KEYS = {
   NOTES: 'promptpad_notes',
   THEME: 'promptpad_theme',
   SORT: 'promptpad_sort',
+  MANUAL_ORDER: 'promptpad_manual_order',
 } as const;
 
 export const AUTO_TITLE_MAX_LENGTH = 30;

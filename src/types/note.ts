@@ -14,5 +14,5 @@ export interface NoteDraft {
   tags: string[];
 }
 
-export type SortBy = 'updatedAt' | 'createdAt' | 'title';
+export type SortBy = 'updatedAt' | 'createdAt' | 'title' | 'manual';
 export type Theme = 'dark' | 'light';

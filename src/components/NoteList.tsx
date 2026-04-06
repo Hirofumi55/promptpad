@@ -1,5 +1,5 @@
-import { useEffect, useRef } from 'preact/hooks';
-import { SortDesc, Star } from 'lucide-preact';
+import { useEffect, useRef, useState } from 'preact/hooks';
+import { SortDesc, Star, GripVertical } from 'lucide-preact';
 import type { Note, SortBy } from '../types/note';
 import { NoteCard } from './NoteCard';
 import { SearchBar } from './SearchBar';
@@ -26,12 +26,14 @@ interface Props {
   onToggleFavorite: (id: string) => void;
   onDelete: (id: string) => void;
   onNewNote: () => void;
+  onReorder: (newIds: string[]) => void;
 }
 
 const SORT_LABELS: Record<SortBy, string> = {
   updatedAt: '更新日時',
   createdAt: '作成日時',
   title: 'タイトル',
+  manual: '手動',
 };
 
 function FilterButton({
@@ -78,6 +80,7 @@ export function NoteList({
   onToggleFavorite,
   onDelete,
   onNewNote,
+  onReorder,
 }: Props) {
   const isFiltering = Boolean(searchQuery || selectedTag || showFavoritesOnly);
   const noFilter = !selectedTag && !showFavoritesOnly;
@@ -86,9 +89,13 @@ export function NoteList({
   const isMountedRef = useRef(false);
   const prevNotesLenRef = useRef(notes.length);
 
+  // ドラッグ&ドロップ状態（手動ソートのみ有効）
+  const [dragId, setDragId] = useState<string | null>(null);
+  const [dragOverId, setDragOverId] = useState<string | null>(null);
+  const isDndEnabled = sortBy === 'manual' && !isFiltering;
+
   // 初回マウント: 全カード入場アニメーション
   // ノート追加時: 先頭1枚だけアニメーション
-  // 削除・フィルタ変更・ソート変更: アニメーションなし
   useEffect(() => {
     if (!isMountedRef.current) {
       isMountedRef.current = true;
@@ -97,9 +104,22 @@ export function NoteList({
       animateCards(listRef.current, true);
     }
     prevNotesLenRef.current = notes.length;
-  // notes.length の変化のみを監視（filteredNotes の変化では再アニメートしない）
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [notes.length]);
+
+  function handleDrop(toId: string) {
+    if (!dragId || dragId === toId) return;
+    const ids = filteredNotes.map((n) => n.id);
+    const fromIdx = ids.indexOf(dragId);
+    const toIdx = ids.indexOf(toId);
+    if (fromIdx === -1 || toIdx === -1) return;
+    const newIds = [...ids];
+    newIds.splice(fromIdx, 1);
+    newIds.splice(toIdx, 0, dragId);
+    onReorder(newIds);
+    setDragId(null);
+    setDragOverId(null);
+  }
 
   return (
     <div class="flex flex-col h-full">
@@ -134,14 +154,11 @@ export function NoteList({
         </div>
       </div>
 
-      {/* フィルタータブ（常に表示） */}
+      {/* フィルタータブ */}
       <div class="px-3 pb-2 flex gap-1.5 flex-wrap items-center">
-        {/* すべて */}
         <FilterButton active={noFilter} onClick={onClearFilters}>
           すべて
         </FilterButton>
-
-        {/* お気に入り */}
         <FilterButton active={showFavoritesOnly} onClick={onFavoritesToggle}>
           <Star
             size={10}
@@ -163,8 +180,6 @@ export function NoteList({
             </span>
           )}
         </FilterButton>
-
-        {/* タグ */}
         {allTags.map((tag) => (
           <FilterButton
             key={tag}
@@ -176,7 +191,7 @@ export function NoteList({
         ))}
       </div>
 
-      {/* カウント表示 */}
+      {/* カウント + フィルタ解除 */}
       <div class="px-3 pb-1.5 flex items-center justify-between">
         <span class="text-xs" style={{ color: 'var(--color-text-muted)' }}>
           {isFiltering
@@ -194,22 +209,76 @@ export function NoteList({
         )}
       </div>
 
+      {/* 手動ソート時のフィルタ中ヒント */}
+      {sortBy === 'manual' && isFiltering && (
+        <div
+          class="mx-3 mb-2 px-3 py-2 rounded-lg text-xs"
+          style={{
+            background: 'var(--color-accent-soft)',
+            color: 'var(--color-accent)',
+            border: '1px solid var(--color-accent)',
+          }}
+        >
+          フィルタ中は並び替えできません。フィルタを解除してください。
+        </div>
+      )}
+
       {/* リスト */}
       <div ref={listRef} class="flex-1 overflow-y-auto px-3 pb-3 flex flex-col gap-2">
         {filteredNotes.length === 0 ? (
           <EmptyState isSearching={isFiltering} onNewNote={onNewNote} />
         ) : (
           filteredNotes.map((note) => (
-            <NoteCard
-              key={note.id}
-              note={note}
-              isSelected={selectedId === note.id}
-              copiedId={copiedId}
-              onSelect={() => onSelect(note.id)}
-              onCopy={onCopy}
-              onToggleFavorite={() => onToggleFavorite(note.id)}
-              onDelete={() => onDelete(note.id)}
-            />
+            isDndEnabled ? (
+              /* ドラッグ可能ラッパー */
+              <div
+                key={note.id}
+                draggable
+                onDragStart={() => setDragId(note.id)}
+                onDragOver={(e) => { e.preventDefault(); if (dragOverId !== note.id) setDragOverId(note.id); }}
+                onDrop={() => handleDrop(note.id)}
+                onDragEnd={() => { setDragId(null); setDragOverId(null); }}
+                class="flex items-center gap-1"
+                style={{
+                  opacity: dragId === note.id ? 0.4 : 1,
+                  borderTop: dragOverId === note.id && dragId !== note.id
+                    ? '2px solid var(--color-accent)'
+                    : '2px solid transparent',
+                  transition: 'opacity 0.15s, border-top-color 0.1s',
+                }}
+              >
+                {/* ドラッグハンドル */}
+                <div
+                  class="shrink-0 flex items-center justify-center w-5 cursor-grab active:cursor-grabbing"
+                  style={{ color: 'var(--color-text-muted)', touchAction: 'none' }}
+                  aria-hidden="true"
+                >
+                  <GripVertical size={14} />
+                </div>
+                <div class="flex-1 min-w-0">
+                  <NoteCard
+                    note={note}
+                    isSelected={selectedId === note.id}
+                    copiedId={copiedId}
+                    onSelect={() => onSelect(note.id)}
+                    onCopy={onCopy}
+                    onToggleFavorite={() => onToggleFavorite(note.id)}
+                    onDelete={() => onDelete(note.id)}
+                  />
+                </div>
+              </div>
+            ) : (
+              <NoteCard
+                key={note.id}
+                note={note}
+                isSelected={selectedId === note.id}
+                copiedId={copiedId}
+                onSelect={() => onSelect(note.id)}
+                onCopy={onCopy}
+                onToggleFavorite={() => onToggleFavorite(note.id)}
+                onDelete={() => onDelete(note.id)}
+              />
+            )
           ))
         )}
       </div>
