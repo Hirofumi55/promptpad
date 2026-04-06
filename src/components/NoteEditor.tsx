@@ -15,7 +15,6 @@ export function NoteEditor({ note, onSave, onCancel, onBack }: Props) {
   const [content, setContent] = useState(note?.content ?? '');
   const [tags, setTags] = useState<string[]>(note?.tags ?? []);
   const [tagInput, setTagInput] = useState('');
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const titleRef = useRef<HTMLInputElement>(null);
 
   // 編集対象が変わったら初期化し、タイトル欄にフォーカス
@@ -28,14 +27,6 @@ export function NoteEditor({ note, onSave, onCancel, onBack }: Props) {
       requestAnimationFrame(() => titleRef.current?.focus());
     }
   }, [note?.id]);
-
-  // テキストエリア自動リサイズ
-  useEffect(() => {
-    const el = textareaRef.current;
-    if (!el) return;
-    el.style.height = 'auto';
-    el.style.height = `${el.scrollHeight}px`;
-  }, [content]);
 
   // Ctrl/Cmd+S で保存
   useEffect(() => {
@@ -64,7 +55,7 @@ export function NoteEditor({ note, onSave, onCancel, onBack }: Props) {
   const doSave = () => onSave({ title, content, tags });
 
   return (
-    <div class="flex flex-col h-full">
+    <div class="flex-1 flex flex-col min-h-0">
       {/* モバイル専用トップバー（lg以上では非表示） */}
       {onBack && (
         <div
@@ -122,10 +113,10 @@ export function NoteEditor({ note, onSave, onCancel, onBack }: Props) {
         />
       </div>
 
-      {/* テキストエリア — min-h-0 で flex アイテムがコンテンツサイズで膨らむのを防ぐ */}
-      <div class="flex-1 min-h-0 px-4 overflow-y-auto">
+      {/* テキストエリア — flex-1 min-h-0 で親の残り高さを占有し、内部でスクロール */}
+      <div class="flex-1 min-h-0 flex flex-col px-4 pt-1 pb-2">
         <label
-          class="block text-xs font-medium mb-1"
+          class="block text-xs font-medium mb-1 shrink-0"
           style={{ color: 'var(--color-text-muted)' }}
           for="note-content"
         >
@@ -133,16 +124,16 @@ export function NoteEditor({ note, onSave, onCancel, onBack }: Props) {
         </label>
         <textarea
           id="note-content"
-          ref={textareaRef}
           value={content}
           onInput={(e) => setContent((e.target as HTMLTextAreaElement).value)}
           placeholder="ここにプロンプトを入力..."
-          class="w-full bg-transparent border-none outline-none text-sm leading-relaxed min-h-[200px]"
+          class="flex-1 min-h-0 w-full bg-transparent border-none outline-none text-sm leading-relaxed"
           style={{
             color: 'var(--color-text-primary)',
             fontFamily: 'var(--font-sans)',
+            resize: 'none',
+            overflowY: 'auto',
           }}
-          rows={1}
           aria-label="プロンプト本文"
         />
       </div>
