@@ -74,9 +74,10 @@ const ogImage = `${siteUrl}/og-image.png`;
     <!-- FOUC防止: 初期テーマをインラインスクリプトで即時適用 -->
     <script is:inline>
       (function () {
-        const t = localStorage.getItem('promptpad_theme') || 'dark';
-        document.documentElement.classList.toggle('dark', t === 'dark');
-        document.documentElement.setAttribute('data-theme', t);
+        const storedTheme = localStorage.getItem('promptpad_theme');
+        const theme = storedTheme === 'light' || storedTheme === 'dark' ? storedTheme : 'dark';
+        document.documentElement.classList.toggle('dark', theme === 'dark');
+        document.documentElement.setAttribute('data-theme', theme);
       })();
     </script>
 

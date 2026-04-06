@@ -1,70 +1,83 @@
 import { useState, useCallback } from 'preact/hooks';
-import type { Note, SortBy } from '../types/note';
+import type { Note, NoteDraft, SortBy } from '../types/note';
 import { storage } from '../lib/storage';
 import { AUTO_TITLE_MAX_LENGTH } from '../lib/constants';
 
-function generateAutoTitle(content: string): string {
+function resolveNoteTitle(title: string, content: string): string {
   const firstLine = content.split('\n')[0]?.trim() ?? '';
-  return firstLine.slice(0, AUTO_TITLE_MAX_LENGTH) || '無題のプロンプト';
+  return title.trim() || firstLine.slice(0, AUTO_TITLE_MAX_LENGTH) || '無題のプロンプト';
+}
+
+function createNoteRecord(data: NoteDraft): Note {
+  const now = new Date().toISOString();
+  return {
+    id: crypto.randomUUID(),
+    title: resolveNoteTitle(data.title, data.content),
+    content: data.content,
+    tags: data.tags,
+    createdAt: now,
+    updatedAt: now,
+    isFavorite: false,
+  };
+}
+
+function updateNoteRecord(note: Note, data: NoteDraft): Note {
+  return {
+    ...note,
+    ...data,
+    title: resolveNoteTitle(data.title, data.content),
+    updatedAt: new Date().toISOString(),
+  };
 }
 
 export function useNotes() {
   const [notes, setNotes] = useState<Note[]>(() => storage.getNotes());
   const [sortBy, setSortByState] = useState<SortBy>(() => storage.getSortBy());
 
-  const persist = useCallback((next: Note[]) => {
-    storage.saveNotes(next);
-    setNotes(next);
+  const commitNotes = useCallback((update: (current: Note[]) => Note[]) => {
+    setNotes((current) => {
+      const next = update(current);
+      storage.saveNotes(next);
+      return next;
+    });
   }, []);
 
   const createNote = useCallback(
-    (data: { title: string; content: string; tags: string[] }): Note => {
-      const now = new Date().toISOString();
-      const newNote: Note = {
-        id: crypto.randomUUID(),
-        title: data.title.trim() || generateAutoTitle(data.content),
-        content: data.content,
-        tags: data.tags,
-        createdAt: now,
-        updatedAt: now,
-        isFavorite: false,
-      };
-      persist([newNote, ...notes]);
+    (data: NoteDraft): Note => {
+      const newNote = createNoteRecord(data);
+      commitNotes((current) => [newNote, ...current]);
       return newNote;
     },
-    [notes, persist],
+    [commitNotes],
   );
 
   const updateNote = useCallback(
-    (id: string, data: Partial<Pick<Note, 'title' | 'content' | 'tags'>>): void => {
-      const next = notes.map((n) => {
-        if (n.id !== id) return n;
-        const title =
-          data.title !== undefined
-            ? data.title.trim() || generateAutoTitle(data.content ?? n.content)
-            : n.title;
-        return { ...n, ...data, title, updatedAt: new Date().toISOString() };
-      });
-      persist(next);
+    (id: string, data: NoteDraft): void => {
+      commitNotes((current) =>
+        current.map((note) => (note.id === id ? updateNoteRecord(note, data) : note)),
+      );
     },
-    [notes, persist],
+    [commitNotes],
   );
 
   const deleteNote = useCallback(
     (id: string): void => {
-      persist(notes.filter((n) => n.id !== id));
+      commitNotes((current) => current.filter((note) => note.id !== id));
     },
-    [notes, persist],
+    [commitNotes],
   );
 
   const toggleFavorite = useCallback(
     (id: string): void => {
-      const next = notes.map((n) =>
-        n.id === id ? { ...n, isFavorite: !n.isFavorite, updatedAt: new Date().toISOString() } : n,
+      commitNotes((current) =>
+        current.map((note) =>
+          note.id === id
+            ? { ...note, isFavorite: !note.isFavorite, updatedAt: new Date().toISOString() }
+            : note,
+        ),
       );
-      persist(next);
     },
-    [notes, persist],
+    [commitNotes],
   );
 
   const changeSortBy = useCallback(
@@ -80,5 +93,13 @@ export function useNotes() {
     return new Date(b[sortBy]).getTime() - new Date(a[sortBy]).getTime();
   });
 
-  return { notes: sortedNotes, sortBy, createNote, updateNote, deleteNote, toggleFavorite, changeSortBy };
+  return {
+    notes: sortedNotes,
+    sortBy,
+    createNote,
+    updateNote,
+    deleteNote,
+    toggleFavorite,
+    changeSortBy,
+  };
 }

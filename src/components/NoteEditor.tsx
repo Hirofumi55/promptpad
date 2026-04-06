@@ -1,58 +1,87 @@
-import { useState, useEffect, useRef } from 'preact/hooks';
+import { useState, useEffect, useRef, useCallback, useLayoutEffect } from 'preact/hooks';
 import { ArrowLeft, X, Tag, Plus, Save } from 'lucide-preact';
-import type { Note } from '../types/note';
+import type { Note, NoteDraft } from '../types/note';
 
 interface Props {
   note: Note | null;
-  onSave: (data: { title: string; content: string; tags: string[] }) => void;
+  onSave: (data: NoteDraft) => void;
   onCancel: () => void;
   /** モバイルで一覧に戻るボタン用（任意） */
   onBack?: () => void;
 }
 
+function createDraft(note: Note | null): NoteDraft {
+  return {
+    title: note?.title ?? '',
+    content: note?.content ?? '',
+    tags: note?.tags ?? [],
+  };
+}
+
 export function NoteEditor({ note, onSave, onCancel, onBack }: Props) {
-  const [title, setTitle] = useState(note?.title ?? '');
-  const [content, setContent] = useState(note?.content ?? '');
-  const [tags, setTags] = useState<string[]>(note?.tags ?? []);
+  const [draft, setDraft] = useState<NoteDraft>(() => createDraft(note));
   const [tagInput, setTagInput] = useState('');
   const titleRef = useRef<HTMLInputElement>(null);
+  const contentRef = useRef<HTMLTextAreaElement>(null);
+  const draftRef = useRef<NoteDraft>(createDraft(note));
 
-  // 編集対象が変わったら初期化し、タイトル欄にフォーカス
-  useEffect(() => {
-    setTitle(note?.title ?? '');
-    setContent(note?.content ?? '');
-    setTags(note?.tags ?? []);
-    setTagInput('');
+  const updateDraft = useCallback((updater: (current: NoteDraft) => NoteDraft) => {
+    setDraft((current) => {
+      const next = updater(current);
+      draftRef.current = next;
+      return next;
+    });
+  }, []);
+
+  const buildDraftForSave = useCallback((): NoteDraft => {
+    const latest = draftRef.current;
+    return {
+      title: titleRef.current?.value ?? latest.title,
+      content: contentRef.current?.value ?? latest.content,
+      tags: latest.tags,
+    };
+  }, []);
+
+  // 新規作成時だけ、マウント直後にタイトル欄へフォーカスする
+  useLayoutEffect(() => {
     if (!note) {
-      requestAnimationFrame(() => titleRef.current?.focus());
+      titleRef.current?.focus();
     }
-  }, [note?.id]);
+  }, [note]);
 
   // Ctrl/Cmd+S で保存
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === 's') {
         e.preventDefault();
-        onSave({ title, content, tags });
+        onSave(buildDraftForSave());
       }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [title, content, tags, onSave]);
+  }, [buildDraftForSave, onSave]);
 
   function addTag() {
     const t = tagInput.trim();
-    if (t && !tags.includes(t)) {
-      setTags([...tags, t]);
-    }
+    if (!t) return;
+    updateDraft((current) => (
+      current.tags.includes(t)
+        ? current
+        : { ...current, tags: [...current.tags, t] }
+    ));
     setTagInput('');
   }
 
   function removeTag(tag: string) {
-    setTags(tags.filter((t) => t !== tag));
+    updateDraft((current) => ({
+      ...current,
+      tags: current.tags.filter((currentTag) => currentTag !== tag),
+    }));
   }
 
-  const doSave = () => onSave({ title, content, tags });
+  const doSave = useCallback(() => {
+    onSave(buildDraftForSave());
+  }, [buildDraftForSave, onSave]);
 
   return (
     <div class="flex-1 flex flex-col min-h-0">
@@ -100,8 +129,12 @@ export function NoteEditor({ note, onSave, onCancel, onBack }: Props) {
           id="note-title"
           ref={titleRef}
           type="text"
-          value={title}
-          onInput={(e) => setTitle((e.target as HTMLInputElement).value)}
+          value={draft.title}
+          onInput={(e) =>
+            updateDraft((current) => ({
+              ...current,
+              title: (e.target as HTMLInputElement).value,
+            }))}
           placeholder="無題のプロンプト"
           class="w-full text-lg font-semibold bg-transparent border-none outline-none"
           style={{ color: 'var(--color-text-primary)' }}
@@ -124,8 +157,13 @@ export function NoteEditor({ note, onSave, onCancel, onBack }: Props) {
         </label>
         <textarea
           id="note-content"
-          value={content}
-          onInput={(e) => setContent((e.target as HTMLTextAreaElement).value)}
+          ref={contentRef}
+          value={draft.content}
+          onInput={(e) =>
+            updateDraft((current) => ({
+              ...current,
+              content: (e.target as HTMLTextAreaElement).value,
+            }))}
           placeholder="ここにプロンプトを入力..."
           class="flex-1 min-h-0 w-full bg-transparent border-none outline-none text-sm leading-relaxed"
           style={{
@@ -157,7 +195,7 @@ export function NoteEditor({ note, onSave, onCancel, onBack }: Props) {
         {/* タグ行 */}
         <div class="px-4 pt-3 pb-2 flex items-center gap-2 flex-wrap">
           <Tag size={12} style={{ color: 'var(--color-text-muted)', flexShrink: 0 }} />
-          {tags.map((tag) => (
+          {draft.tags.map((tag) => (
             <span
               key={tag}
               class="flex items-center gap-1 text-xs px-2 py-0.5 rounded-lg font-medium"

@@ -1,5 +1,10 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page, type TestInfo } from '@playwright/test';
 import { createNote, expectNoRuntimeIssues, noteCard, startRuntimeTracking } from './helpers';
+
+async function returnToListIfMobile(page: Page, testInfo: TestInfo): Promise<void> {
+  if (!testInfo.project.name.includes('mobile')) return;
+  await page.getByRole('button', { name: '一覧に戻る' }).click();
+}
 
 test('初回表示で主要UIとSEOメタが揃う', async ({ page }) => {
   const issues = startRuntimeTracking(page);
@@ -34,7 +39,7 @@ test('初回表示で主要UIとSEOメタが揃う', async ({ page }) => {
   await expectNoRuntimeIssues(issues);
 });
 
-test('ノートを作成してリロード後も保持される', async ({ page }) => {
+test('ノートを作成してリロード後も保持される', async ({ page }, testInfo) => {
   const issues = startRuntimeTracking(page);
 
   await page.goto('/');
@@ -44,6 +49,7 @@ test('ノートを作成してリロード後も保持される', async ({ page 
     tags: ['support', 'sales'],
   });
 
+  await returnToListIfMobile(page, testInfo);
   await expect(noteCard(page, '顧客返信テンプレ')).toHaveCount(1);
   await page.reload();
 
@@ -83,7 +89,6 @@ test('テーマ切り替えがリロード後も保持される', async ({ page 
 });
 
 test('破損したlocalStorageでも空状態にフォールバックする', async ({ page }) => {
-  test.fail(true, '初期テーマ適用スクリプトが invalid 値をそのまま data-theme に反映してしまう');
   const issues = startRuntimeTracking(page);
 
   await page.addInitScript(() => {

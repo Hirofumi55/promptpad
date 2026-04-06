@@ -11,6 +11,7 @@ import { TOAST_DURATION_MS } from '../lib/constants';
 import { animateEditorIn, animateEditorSlideUp } from '../lib/animations';
 import { InstallPrompt } from './InstallPrompt';
 import { Keyboard } from 'lucide-preact';
+import type { NoteDraft } from '../types/note';
 
 // キーボードショートカットのヘルプ表示
 const SHORTCUTS = [
@@ -78,6 +79,12 @@ function ShortcutHelp() {
 // selectedId + isCreating の二重管理を廃止し、不正状態を構造的に排除する
 type EditorMode = 'idle' | 'create' | 'edit';
 
+function isEditableTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false;
+  const tagName = target.tagName;
+  return tagName === 'INPUT' || tagName === 'TEXTAREA' || target.isContentEditable;
+}
+
 export function App() {
   const { notes, sortBy, createNote, updateNote, deleteNote, toggleFavorite, changeSortBy } = useNotes();
   const { copiedId, copy } = useClipboard();
@@ -123,23 +130,18 @@ export function App() {
     setEditingId(null);
   }, []);
 
+  const closeEditor = useCallback(() => {
+    setMode('idle');
+    setEditingId(null);
+  }, []);
+
   const handleSelect = useCallback((id: string) => {
     setMode('edit');
     setEditingId(id);
   }, []);
 
-  const handleBack = useCallback(() => {
-    setMode('idle');
-    setEditingId(null);
-  }, []);
-
-  const handleCancel = useCallback(() => {
-    setMode('idle');
-    setEditingId(null);
-  }, []);
-
   const handleSave = useCallback(
-    (data: { title: string; content: string; tags: string[] }) => {
+    (data: NoteDraft) => {
       if (mode === 'create') {
         const note = createNote(data);
         setMode('edit');
@@ -157,12 +159,11 @@ export function App() {
     (id: string) => {
       deleteNote(id);
       if (editingId === id) {
-        setMode('idle');
-        setEditingId(null);
+        closeEditor();
       }
       addToast('削除しました');
     },
-    [deleteNote, editingId, addToast],
+    [closeEditor, deleteNote, editingId, addToast],
   );
 
   const handleCopy = useCallback(
@@ -181,8 +182,7 @@ export function App() {
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       const mod = e.ctrlKey || e.metaKey;
-      const tag = (e.target as HTMLElement).tagName;
-      const isEditing = tag === 'INPUT' || tag === 'TEXTAREA';
+      const isEditing = isEditableTarget(e.target);
 
       // Ctrl+N: 新規作成（テキスト入力中は除く）
       if (mod && e.key === 'n' && !isEditing) {
@@ -196,12 +196,12 @@ export function App() {
       }
       // Escape: エディタを閉じる（フォーカスがinput/textarea内でなければ）
       if (e.key === 'Escape' && !isEditing) {
-        handleCancel();
+        closeEditor();
       }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [handleNewNote, handleCancel]);
+  }, [closeEditor, handleNewNote]);
 
   return (
     <div
@@ -253,8 +253,8 @@ export function App() {
               key={mode === 'create' ? '__create__' : (editingId ?? '__idle__')}
               note={mode === 'create' ? null : editingNote}
               onSave={handleSave}
-              onCancel={handleCancel}
-              onBack={handleBack}
+              onCancel={closeEditor}
+              onBack={closeEditor}
             />
           ) : (
             /* デスクトップのプレースホルダー */

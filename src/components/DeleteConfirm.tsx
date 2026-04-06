@@ -8,7 +8,6 @@ interface Props {
 
 export function DeleteConfirm({ onConfirm, onCancel }: Props) {
   const cancelRef = useRef<HTMLButtonElement>(null);
-  const confirmRef = useRef<HTMLButtonElement>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
 
   // マウント時にキャンセルボタンにフォーカス
@@ -94,7 +93,6 @@ export function DeleteConfirm({ onConfirm, onCancel }: Props) {
             キャンセル
           </button>
           <button
-            ref={confirmRef}
             onClick={onConfirm}
             class="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white transition-colors"
             style={{ background: 'var(--color-danger)' }}

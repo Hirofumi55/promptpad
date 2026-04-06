@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useRef } from 'preact/hooks';
+import { useState, useMemo, useCallback, useEffect } from 'preact/hooks';
 import type { Note } from '../types/note';
 import { SEARCH_DEBOUNCE_MS } from '../lib/constants';
 
@@ -6,13 +6,20 @@ export function useSearch(notes: Note[]) {
   const [searchQuery, setSearchQueryRaw] = useState('');
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [debouncedQuery, setDebouncedQuery] = useState('');
+
+  useEffect(() => {
+    if (!searchQuery) {
+      setDebouncedQuery('');
+      return;
+    }
+
+    const timer = window.setTimeout(() => setDebouncedQuery(searchQuery), SEARCH_DEBOUNCE_MS);
+    return () => window.clearTimeout(timer);
+  }, [searchQuery]);
 
   const setSearchQuery = useCallback((q: string) => {
     setSearchQueryRaw(q);
-    if (timerRef.current) clearTimeout(timerRef.current);
-    timerRef.current = setTimeout(() => setDebouncedQuery(q), SEARCH_DEBOUNCE_MS);
   }, []);
 
   // タグフィルタとお気に入りフィルタは排他制御

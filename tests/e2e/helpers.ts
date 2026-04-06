@@ -65,8 +65,10 @@ export async function openNewNote(page: Page): Promise<void> {
 }
 
 export async function addTag(page: Page, tag: string): Promise<void> {
-  const tagInput = page.getByLabel('タグを入力');
+  const tagInput = page.locator('input[aria-label="タグを入力"]').first();
+  await tagInput.click();
   await tagInput.fill(tag);
+  await expect(tagInput).toHaveValue(tag);
   await tagInput.press('Enter');
   await expect(page.getByText(tag, { exact: true })).toBeVisible();
 }

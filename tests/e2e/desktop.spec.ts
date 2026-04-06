@@ -33,7 +33,7 @@ test('デスクトップで検索・お気に入り・コピーが機能する',
   await expect(noteCard(page, '週報作成')).toHaveCount(0);
 
   await page.getByRole('button', { name: '検索をクリア' }).click();
-  await page.getByRole('button', { name: /お気に入り/ }).click();
+  await page.getByRole('button', { name: /^お気に入り(?:\s+\d+)?$/ }).click();
   await expect(noteCard(page, '週報作成')).toHaveCount(1);
   await expect(noteCard(page, '旅行計画')).toHaveCount(0);
 
@@ -65,7 +65,7 @@ test('選択中ノートを削除すると空状態に戻る', async ({ page }) 
   await noteCard(page, '削除対象ノート').getByRole('button', { name: '削除' }).click();
   const deleteDialog = page.locator('[role="dialog"]').first();
   await expect(deleteDialog).toBeVisible();
-  await deleteDialog.getByRole('button', { name: '削除する' }).click();
+  await deleteDialog.locator('button').filter({ hasText: '削除する' }).click();
 
   await expect(page.getByText('削除しました')).toBeVisible();
   await expect(page.getByText('プロンプトがまだありません')).toBeVisible();
