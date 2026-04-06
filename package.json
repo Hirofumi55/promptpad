@@ -7,7 +7,9 @@
   },
   "scripts": {
     "dev": "astro dev",
+    "prebuild": "pnpm gen-icons",
     "build": "astro build",
+    "postbuild": "node scripts/check-og-image.mjs",
     "preview": "astro preview",
     "astro": "astro",
     "lint": "tsc --noEmit",
