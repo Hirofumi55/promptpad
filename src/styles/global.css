@@ -20,6 +20,7 @@
   --color-tag-bg: #e0e7ff;
   --color-tag-text: #3730a3;
   --color-favorite: #f59e0b;
+  --color-floating-bar-bg: rgba(248, 250, 252, 0.85);
 
   /* グラスモーフィズム */
   --glass-bg: rgba(255, 255, 255, 0.7);
@@ -66,6 +67,7 @@
   --color-tag-bg: rgba(99, 102, 241, 0.2);
   --color-tag-text: #a5b4fc;
   --color-favorite: #fbbf24;
+  --color-floating-bar-bg: rgba(15, 23, 42, 0.85);
 
   --glass-bg: rgba(30, 41, 59, 0.7);
   --glass-border: rgba(51, 65, 85, 0.5);

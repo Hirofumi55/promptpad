@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'preact/hooks';
-import { ArrowLeft, X, Tag, Plus } from 'lucide-preact';
+import { ArrowLeft, X, Tag, Plus, Save } from 'lucide-preact';
 import type { Note } from '../types/note';
 
 interface Props {
@@ -24,7 +24,6 @@ export function NoteEditor({ note, onSave, onCancel, onBack }: Props) {
     setContent(note?.content ?? '');
     setTags(note?.tags ?? []);
     setTagInput('');
-    // 新規作成時はタイトルにフォーカス
     if (!note) {
       requestAnimationFrame(() => titleRef.current?.focus());
     }
@@ -62,6 +61,8 @@ export function NoteEditor({ note, onSave, onCancel, onBack }: Props) {
     setTags(tags.filter((t) => t !== tag));
   }
 
+  const doSave = () => onSave({ title, content, tags });
+
   return (
     <div class="flex flex-col h-full">
       {/* モバイル専用トップバー（lg以上では非表示） */}
@@ -85,9 +86,8 @@ export function NoteEditor({ note, onSave, onCancel, onBack }: Props) {
           <span class="text-sm font-semibold truncate px-4" style={{ color: 'var(--color-text-primary)' }}>
             {note ? '編集' : '新規作成'}
           </span>
-          {/* 保存ボタン（モバイル用・右上） */}
           <button
-            onClick={() => onSave({ title, content, tags })}
+            onClick={doSave}
             class="text-sm font-semibold"
             style={{ color: 'var(--color-accent)' }}
           >
@@ -97,7 +97,7 @@ export function NoteEditor({ note, onSave, onCancel, onBack }: Props) {
       )}
 
       {/* タイトル */}
-      <div class="px-4 pt-4">
+      <div class="px-4 pt-4 shrink-0">
         <label
           class="block text-xs font-medium mb-1"
           style={{ color: 'var(--color-text-muted)' }}
@@ -122,8 +122,8 @@ export function NoteEditor({ note, onSave, onCancel, onBack }: Props) {
         />
       </div>
 
-      {/* テキストエリア */}
-      <div class="flex-1 px-4 overflow-y-auto">
+      {/* テキストエリア — フローティングバーの高さ分だけ下余白を取る */}
+      <div class="flex-1 px-4 overflow-y-auto pb-24">
         <label
           class="block text-xs font-medium mb-1"
           style={{ color: 'var(--color-text-muted)' }}
@@ -147,13 +147,29 @@ export function NoteEditor({ note, onSave, onCancel, onBack }: Props) {
         />
       </div>
 
-      {/* タグ */}
-      <div class="px-4 py-3 border-t shrink-0" style={{ borderColor: 'var(--color-border)' }}>
-        <div class="flex items-center gap-2 flex-wrap">
+      {/*
+        フローティングボトムバー
+        - sticky bottom-0 でスクロールに関わらず常に下部に表示
+        - タグ設定 + 保存/キャンセル を1段にまとめる
+        - backdrop-blur でテキストが透けて見えてもコンテキストが分かるように
+      */}
+      <div
+        class="sticky bottom-0 shrink-0 border-t"
+        style={{
+          background: 'var(--color-floating-bar-bg)',
+          backdropFilter: 'blur(12px)',
+          WebkitBackdropFilter: 'blur(12px)',
+          borderColor: 'var(--color-border)',
+          boxShadow: '0 -4px 20px rgba(0,0,0,0.12)',
+        }}
+      >
+        {/* タグ行 */}
+        <div class="px-4 pt-3 pb-2 flex items-center gap-2 flex-wrap">
+          <Tag size={12} style={{ color: 'var(--color-text-muted)', flexShrink: 0 }} />
           {tags.map((tag) => (
             <span
               key={tag}
-              class="flex items-center gap-1 text-xs px-2 py-1 rounded-lg font-medium"
+              class="flex items-center gap-1 text-xs px-2 py-0.5 rounded-lg font-medium"
               style={{ background: 'var(--color-tag-bg)', color: 'var(--color-tag-text)' }}
             >
               {tag}
@@ -162,13 +178,11 @@ export function NoteEditor({ note, onSave, onCancel, onBack }: Props) {
                 aria-label={`タグ「${tag}」を削除`}
                 class="hover:opacity-70"
               >
-                <X size={11} />
+                <X size={10} />
               </button>
             </span>
           ))}
-          {/* タグ入力 */}
           <div class="flex items-center gap-1">
-            <Tag size={12} style={{ color: 'var(--color-text-muted)' }} />
             <input
               type="text"
               value={tagInput}
@@ -176,45 +190,47 @@ export function NoteEditor({ note, onSave, onCancel, onBack }: Props) {
               onKeyDown={(e) => {
                 if (e.key === 'Enter') { e.preventDefault(); addTag(); }
               }}
-              placeholder="タグを追加"
+              placeholder="タグを追加…"
               class="text-xs bg-transparent border-none outline-none w-20"
               style={{ color: 'var(--color-text-secondary)' }}
+              aria-label="タグを入力"
             />
-            <button
-              onClick={addTag}
-              aria-label="タグを追加"
-              class="w-5 h-5 flex items-center justify-center rounded"
-              style={{ color: 'var(--color-accent)' }}
-            >
-              <Plus size={12} />
-            </button>
+            {tagInput.trim() && (
+              <button
+                onClick={addTag}
+                aria-label="タグを追加"
+                class="w-5 h-5 flex items-center justify-center rounded"
+                style={{ color: 'var(--color-accent)' }}
+              >
+                <Plus size={12} />
+              </button>
+            )}
           </div>
         </div>
-      </div>
 
-      {/* 保存・キャンセル（デスクトップ専用 — モバイルはトップバーで操作） */}
-      <div
-        class="hidden lg:flex px-4 py-3 justify-end gap-2 border-t shrink-0"
-        style={{ borderColor: 'var(--color-border)' }}
-      >
-        <button
-          onClick={onCancel}
-          class="px-4 py-2 rounded-xl text-sm font-semibold transition-colors"
-          style={{
-            background: 'var(--color-bg-secondary)',
-            color: 'var(--color-text-primary)',
-            border: '1px solid var(--color-border)',
-          }}
-        >
-          キャンセル
-        </button>
-        <button
-          onClick={() => onSave({ title, content, tags })}
-          class="px-4 py-2 rounded-xl text-sm font-semibold text-white transition-colors"
-          style={{ background: 'var(--color-accent)' }}
-        >
-          保存
-        </button>
+        {/* ボタン行 */}
+        <div class="px-4 pb-3 flex items-center justify-end gap-2">
+          {/* キャンセルはデスクトップのみ表示（モバイルはトップバーの「一覧」が同等） */}
+          <button
+            onClick={onCancel}
+            class="hidden lg:block px-4 py-2 rounded-xl text-sm font-semibold transition-colors"
+            style={{
+              background: 'var(--color-bg-secondary)',
+              color: 'var(--color-text-primary)',
+              border: '1px solid var(--color-border)',
+            }}
+          >
+            キャンセル
+          </button>
+          <button
+            onClick={doSave}
+            class="flex items-center gap-1.5 px-5 py-2 rounded-xl text-sm font-semibold text-white transition-colors"
+            style={{ background: 'var(--color-accent)' }}
+          >
+            <Save size={14} />
+            保存
+          </button>
+        </div>
       </div>
     </div>
   );
