@@ -8,6 +8,10 @@ const {
   title = 'PromptPad - AIプロンプト専用メモ帳 | 書く・貯める・すぐコピー',
   description = 'AIプロンプトの作成・管理・ワンクリックコピーに特化した無料メモ帳アプリ。ChatGPT・Claude・Geminiなど、あらゆるAIツール向けプロンプトを効率的に管理。オフライン対応・PWA。',
 } = Astro.props;
+
+// astro.config.mjs の site 設定から URL を取得（ハードコード排除）
+const siteUrl = Astro.site?.toString().replace(/\/$/, '') ?? 'https://promptpad-4yp.pages.dev';
+const ogImage = `${siteUrl}/og-image.png`;
 ---
 
 <!doctype html>
@@ -25,17 +29,17 @@ const {
       content="AIプロンプト,メモ帳,プロンプト管理,ChatGPT,Claude,Gemini,プロンプトエンジニアリング,PWA"
     />
     <meta name="author" content="PromptPad" />
-    <link rel="canonical" href="https://promptpad.pages.dev/" />
+    <link rel="canonical" href={`${siteUrl}/`} />
 
     <!-- OGP -->
     <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://promptpad.pages.dev/" />
+    <meta property="og:url" content={`${siteUrl}/`} />
     <meta property="og:title" content="PromptPad - AIプロンプト専用メモ帳" />
     <meta
       property="og:description"
       content="AIプロンプトの作成・管理・ワンクリックコピー。書いて、貯めて、すぐ使える。"
     />
-    <meta property="og:image" content="https://promptpad.pages.dev/og-image.png" />
+    <meta property="og:image" content={ogImage} />
     <meta property="og:locale" content="ja_JP" />
     <meta property="og:site_name" content="PromptPad" />
 
@@ -43,7 +47,7 @@ const {
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="PromptPad - AIプロンプト専用メモ帳" />
     <meta name="twitter:description" content="AIプロンプトの作成・管理・ワンクリックコピー。" />
-    <meta name="twitter:image" content="https://promptpad.pages.dev/og-image.png" />
+    <meta name="twitter:image" content={ogImage} />
 
     <!-- Favicon -->
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
@@ -54,24 +58,18 @@ const {
     <link rel="manifest" href="/manifest.webmanifest" />
 
     <!-- JSON-LD 構造化データ -->
-    <script type="application/ld+json">
-      {
-        "@context": "https://schema.org",
-        "@type": "WebApplication",
-        "name": "PromptPad",
-        "description": "AIプロンプトの作成・管理・ワンクリックコピーに特化したメモ帳アプリ",
-        "url": "https://promptpad.pages.dev",
-        "applicationCategory": "UtilityApplication",
-        "operatingSystem": "All",
-        "offers": {
-          "@type": "Offer",
-          "price": "0",
-          "priceCurrency": "JPY"
-        },
-        "inLanguage": "ja",
-        "browserRequirements": "Requires JavaScript"
-      }
-    </script>
+    <script type="application/ld+json" set:html={JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "PromptPad",
+      "description": "AIプロンプトの作成・管理・ワンクリックコピーに特化したメモ帳アプリ",
+      "url": siteUrl,
+      "applicationCategory": "UtilityApplication",
+      "operatingSystem": "All",
+      "offers": { "@type": "Offer", "price": "0", "priceCurrency": "JPY" },
+      "inLanguage": "ja",
+      "browserRequirements": "Requires JavaScript"
+    })} />
 
     <!-- FOUC防止: 初期テーマをインラインスクリプトで即時適用 -->
     <script is:inline>

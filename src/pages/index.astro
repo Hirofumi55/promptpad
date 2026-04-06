@@ -4,5 +4,10 @@ import { App } from '../components/App';
 ---
 
 <BaseLayout>
+  <!--
+    client:only="preact" のためSSRコンテンツは空になるが、
+    検索エンジン向けに h1 を静的に配置する（ visually-hidden でUIには影響しない）
+  -->
+  <h1 class="sr-only">PromptPad - AIプロンプト専用メモ帳</h1>
   <App client:only="preact" />
 </BaseLayout>
