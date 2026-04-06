@@ -122,8 +122,8 @@ export function NoteEditor({ note, onSave, onCancel, onBack }: Props) {
         />
       </div>
 
-      {/* テキストエリア — フローティングバーの高さ分だけ下余白を取る */}
-      <div class="flex-1 px-4 overflow-y-auto pb-24">
+      {/* テキストエリア — min-h-0 で flex アイテムがコンテンツサイズで膨らむのを防ぐ */}
+      <div class="flex-1 min-h-0 px-4 overflow-y-auto">
         <label
           class="block text-xs font-medium mb-1"
           style={{ color: 'var(--color-text-muted)' }}
@@ -154,7 +154,7 @@ export function NoteEditor({ note, onSave, onCancel, onBack }: Props) {
         - backdrop-blur でテキストが透けて見えてもコンテキストが分かるように
       */}
       <div
-        class="sticky bottom-0 shrink-0 border-t"
+        class="shrink-0 border-t"
         style={{
           background: 'var(--color-floating-bar-bg)',
           backdropFilter: 'blur(12px)',
