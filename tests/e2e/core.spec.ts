@@ -20,11 +20,16 @@ test('初回表示で主要UIとSEOメタが揃う', async ({ page }) => {
   await expect(page).toHaveTitle(/PromptPad/);
   await expect(page.getByText('PromptPad', { exact: true }).first()).toBeVisible();
   await expect(page.getByRole('heading', { name: 'PromptPad - AIプロンプト専用メモ帳' })).toBeAttached();
+  await expect(page.getByRole('heading', { name: 'AIプロンプトを保存・整理・すぐコピーできる無料メモ帳' })).toBeVisible();
   await expect(page.getByLabel('プロンプトを検索')).toBeVisible();
   await expect(page.getByText('プロンプトがまだありません')).toBeVisible();
 
   const manifestLink = page.locator('link[rel="manifest"]');
   await expect(manifestLink).toHaveAttribute('href', '/manifest.webmanifest');
+  await expect(page.locator('link[rel="canonical"]')).toHaveAttribute('href', 'https://promptpad-4yp.pages.dev/');
+  await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', /index,follow/);
+  await expect(page.locator('meta[property="og:image:alt"]')).toHaveAttribute('content', /PromptPad/);
+  await expect(page.locator('link[rel="shortcut icon"]')).toHaveAttribute('href', '/favicon.ico');
   await expect(page.locator('meta[property="og:image"]')).toHaveAttribute(
     'content',
     /\/og-image\.png$/,
@@ -41,6 +46,15 @@ test('初回表示で主要UIとSEOメタが揃う', async ({ page }) => {
   const ogImageResponse = await page.request.get('/og-image.png');
   expect(ogImageResponse.ok()).toBeTruthy();
   expect(ogImageResponse.headers()['content-type']).toContain('image/png');
+
+  const robotsResponse = await page.request.get('/robots.txt');
+  expect(robotsResponse.ok()).toBeTruthy();
+  expect(await robotsResponse.text()).toContain('Sitemap: https://promptpad-4yp.pages.dev/sitemap.xml');
+
+  const sitemapResponse = await page.request.get('/sitemap.xml');
+  expect(sitemapResponse.ok()).toBeTruthy();
+  expect(sitemapResponse.headers()['content-type']).toContain('xml');
+  expect(await sitemapResponse.text()).toContain('<loc>https://promptpad-4yp.pages.dev/</loc>');
 
   await expectNoRuntimeIssues(issues);
 });

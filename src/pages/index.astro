@@ -3,11 +3,151 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 import { App } from '../components/App';
 ---
 
-<BaseLayout>
-  <!--
-    client:only="preact" のためSSRコンテンツは空になるが、
-    検索エンジン向けに h1 を静的に配置する（ visually-hidden でUIには影響しない）
-  -->
+<BaseLayout
+  title="PromptPad | AIプロンプトを保存・整理・すぐコピーできる無料メモ帳"
+  description="PromptPad は、ChatGPT・Claude・Gemini などの AI プロンプトをブラウザだけで保存・整理・ワンクリックコピーできる無料メモ帳アプリです。"
+>
   <h1 class="sr-only">PromptPad - AIプロンプト専用メモ帳</h1>
-  <App client:only="preact" />
+
+  <section id="promptpad-app" aria-labelledby="promptpad-app-title">
+    <h2 id="promptpad-app-title" class="sr-only">PromptPad アプリ本体</h2>
+    <noscript>
+      <div
+        style="
+          padding: 16px;
+          border-bottom: 1px solid #e2e8f0;
+          background: #fff7ed;
+          color: #9a3412;
+          font: 500 14px/1.6 system-ui, sans-serif;
+        "
+      >
+        JavaScript を有効にすると PromptPad を利用できます。PromptPad は、AI プロンプトの保存・整理・コピーに特化したブラウザメモ帳です。
+      </div>
+    </noscript>
+    <App client:only="preact" />
+  </section>
+
+  <section
+    aria-labelledby="promptpad-overview-title"
+    style={{
+      background: 'var(--color-bg-secondary)',
+      borderTop: '1px solid var(--color-border)',
+      borderBottom: '1px solid var(--color-border)',
+    }}
+  >
+    <div
+      style={{
+        maxWidth: '960px',
+        margin: '0 auto',
+        padding: '32px 20px',
+        color: 'var(--color-text-primary)',
+      }}
+    >
+      <nav aria-label="ページ内リンク" style={{ marginBottom: '20px' }}>
+        <ul
+          style={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: '10px',
+            listStyle: 'none',
+            padding: 0,
+            margin: 0,
+          }}
+        >
+          <li><a href="#promptpad-app">アプリを開く</a></li>
+          <li><a href="#promptpad-features">主な機能</a></li>
+          <li><a href="#promptpad-faq">よくある質問</a></li>
+          <li><a href="#promptpad-indexing">インデックス上の注意</a></li>
+        </ul>
+      </nav>
+
+      <article aria-labelledby="promptpad-overview-title">
+        <h2 id="promptpad-overview-title" style={{ margin: '0 0 12px', fontSize: '1.5rem', lineHeight: 1.4 }}>
+          AIプロンプトを保存・整理・すぐコピーできる無料メモ帳
+        </h2>
+        <p style={{ margin: '0 0 12px', lineHeight: 1.8, color: 'var(--color-text-secondary)' }}>
+          PromptPad は、ChatGPT・Claude・Gemini など複数の AI ツールで使い回すプロンプトを、
+          ブラウザだけで手早く管理できる静的 Web アプリです。ノートの作成、タグ整理、お気に入り管理、
+          ワンクリックコピーまでを一つの画面で完結できます。
+        </p>
+        <p style={{ margin: 0, lineHeight: 1.8, color: 'var(--color-text-secondary)' }}>
+          サーバー登録やアカウント作成は不要で、保存データはブラウザの localStorage に保持されます。
+          個人用のプロンプト保管庫として、デスクトップでもスマートフォンでもすぐ使い始められます。
+        </p>
+      </article>
+
+      <section id="promptpad-features" aria-labelledby="promptpad-features-title" style={{ marginTop: '28px' }}>
+        <h3 id="promptpad-features-title" style={{ margin: '0 0 12px', fontSize: '1.125rem' }}>主な機能</h3>
+        <ul style={{ margin: 0, paddingLeft: '1.25rem', lineHeight: 1.9, color: 'var(--color-text-secondary)' }}>
+          <li>AIプロンプトの作成・編集・削除と、本文先頭からのタイトル自動生成</li>
+          <li>全文検索、タグフィルタ、お気に入り表示による素早い絞り込み</li>
+          <li>ワンクリックコピーによる AI チャット画面への貼り付け支援</li>
+          <li>ダークモード、PWA、モバイル対応による継続利用しやすい操作性</li>
+        </ul>
+      </section>
+
+      <section id="promptpad-faq" aria-labelledby="promptpad-faq-title" style={{ marginTop: '28px' }}>
+        <h3 id="promptpad-faq-title" style={{ margin: '0 0 12px', fontSize: '1.125rem' }}>よくある質問</h3>
+        <dl style={{ margin: 0, display: 'grid', gap: '16px' }}>
+          <div>
+            <dt style={{ fontWeight: 600 }}>保存したプロンプトは外部サーバーに送信されますか？</dt>
+            <dd style={{ margin: '6px 0 0', color: 'var(--color-text-secondary)', lineHeight: 1.8 }}>
+              送信されません。PromptPad のデータはブラウザ内の localStorage に保存されます。
+            </dd>
+          </div>
+          <div>
+            <dt style={{ fontWeight: 600 }}>オフラインでも使えますか？</dt>
+            <dd style={{ margin: '6px 0 0', color: 'var(--color-text-secondary)', lineHeight: 1.8 }}>
+              初回読み込み後は PWA として再訪しやすく、通信が不安定な環境でもメモを確認しやすい設計です。
+            </dd>
+          </div>
+          <div>
+            <dt style={{ fontWeight: 600 }}>保存したノート内容は検索エンジンにインデックスされますか？</dt>
+            <dd style={{ margin: '6px 0 0', color: 'var(--color-text-secondary)', lineHeight: 1.8 }}>
+              されません。ノートはユーザーのブラウザ内データであり、公開 URL や個別ページは生成されません。
+            </dd>
+          </div>
+        </dl>
+      </section>
+
+      <section id="promptpad-indexing" aria-labelledby="promptpad-indexing-title" style={{ marginTop: '28px' }}>
+        <h3 id="promptpad-indexing-title" style={{ margin: '0 0 12px', fontSize: '1.125rem' }}>インデックス上の注意</h3>
+        <p style={{ margin: 0, lineHeight: 1.8, color: 'var(--color-text-secondary)' }}>
+          PromptPad は単一ページの静的アプリです。検索エンジンが評価するのはトップページの説明テキストとメタ情報であり、
+          ユーザーが保存したプロンプト自体は個別 URL を持たないため検索結果には出ません。公開向けの内容を増やしたい場合は、
+          今後「使い方」「テンプレート集」「活用事例」などの静的下層ページ追加が有効です。
+        </p>
+      </section>
+    </div>
+  </section>
+
+  <footer
+    style={{
+      background: 'var(--color-bg-primary)',
+      color: 'var(--color-text-secondary)',
+      borderTop: '1px solid var(--color-border)',
+    }}
+  >
+    <div
+      style={{
+        maxWidth: '960px',
+        margin: '0 auto',
+        padding: '20px',
+        display: 'flex',
+        flexWrap: 'wrap',
+        gap: '12px 20px',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+      }}
+    >
+      <p style={{ margin: 0 }}>PromptPad は AI プロンプト管理に特化した静的 Web アプリです。</p>
+      <nav aria-label="フッターリンク">
+        <a href="#promptpad-app">アプリ</a>
+        {' · '}
+        <a href="#promptpad-features">機能</a>
+        {' · '}
+        <a href="#promptpad-faq">FAQ</a>
+      </nav>
+    </div>
+  </footer>
 </BaseLayout>
