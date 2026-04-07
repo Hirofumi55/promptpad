@@ -1,5 +1,6 @@
-import { useEffect, useRef } from 'preact/hooks';
+import { useRef } from 'preact/hooks';
 import { Trash2 } from 'lucide-preact';
+import { useModalDialog } from '../hooks/useModalDialog';
 
 interface Props {
   onConfirm: () => void;
@@ -8,46 +9,16 @@ interface Props {
 
 export function DeleteConfirm({ onConfirm, onCancel }: Props) {
   const cancelRef = useRef<HTMLButtonElement>(null);
-  const dialogRef = useRef<HTMLDivElement>(null);
-
-  // マウント時にキャンセルボタンにフォーカス
-  useEffect(() => {
-    cancelRef.current?.focus();
-  }, []);
-
-  // Esc でキャンセル + フォーカストラップ
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        e.stopPropagation();
-        onCancel();
-        return;
-      }
-      // Tab / Shift+Tab でダイアログ内に閉じ込める
-      if (e.key === 'Tab') {
-        const focusable = dialogRef.current?.querySelectorAll<HTMLElement>(
-          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-        );
-        if (!focusable || focusable.length === 0) return;
-        const first = focusable[0];
-        const last = focusable[focusable.length - 1];
-        if (e.shiftKey) {
-          if (document.activeElement === first) { e.preventDefault(); last.focus(); }
-        } else {
-          if (document.activeElement === last) { e.preventDefault(); first.focus(); }
-        }
-      }
-    };
-    window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
-  }, [onCancel]);
+  const { dialogRef } = useModalDialog<HTMLDivElement>({
+    onClose: onCancel,
+    initialFocusRef: cancelRef,
+  });
 
   return (
     <div
       class="fixed inset-0 z-50 flex items-center justify-center p-4"
       style={{ background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)' }}
       onClick={onCancel}
-      aria-hidden="true"
     >
       <div
         ref={dialogRef}
@@ -82,6 +53,7 @@ export function DeleteConfirm({ onConfirm, onCancel }: Props) {
         <div class="flex gap-3">
           <button
             ref={cancelRef}
+            type="button"
             onClick={onCancel}
             class="flex-1 py-2.5 rounded-xl text-sm font-semibold transition-colors"
             style={{
@@ -93,6 +65,7 @@ export function DeleteConfirm({ onConfirm, onCancel }: Props) {
             キャンセル
           </button>
           <button
+            type="button"
             onClick={onConfirm}
             class="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white transition-colors"
             style={{ background: 'var(--color-danger)' }}

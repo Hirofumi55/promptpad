@@ -10,70 +10,8 @@ import type { ToastMessage } from './Toast';
 import { TOAST_DURATION_MS } from '../lib/constants';
 import { animateEditorIn, animateEditorSlideUp } from '../lib/animations';
 import { InstallPrompt } from './InstallPrompt';
-import { Keyboard } from 'lucide-preact';
 import type { NoteDraft } from '../types/note';
-
-// キーボードショートカットのヘルプ表示
-const SHORTCUTS = [
-  { key: '⌘/Ctrl + N', desc: '新規作成' },
-  { key: '⌘/Ctrl + S', desc: '保存' },
-  { key: '⌘/Ctrl + F', desc: '検索' },
-  { key: 'Esc', desc: 'キャンセル' },
-];
-
-function ShortcutHelp() {
-  const [open, setOpen] = useState(false);
-  return (
-    <div class="relative">
-      <button
-        onClick={() => setOpen((v) => !v)}
-        class="hidden lg:flex items-center gap-1 text-xs px-2 py-1 rounded-lg"
-        style={{ color: 'var(--color-text-muted)', border: '1px solid var(--color-border)' }}
-        aria-label="キーボードショートカット一覧"
-        title="キーボードショートカット"
-      >
-        <Keyboard size={12} />
-      </button>
-      {open && (
-        <>
-          {/* オーバーレイ */}
-          <div
-            class="fixed inset-0 z-40"
-            onClick={() => setOpen(false)}
-          />
-          <div
-            class="absolute right-0 bottom-8 z-50 rounded-xl p-3 w-52"
-            style={{
-              background: 'var(--color-bg-card)',
-              border: '1px solid var(--color-border)',
-              boxShadow: 'var(--shadow-float)',
-            }}
-          >
-            <p class="text-xs font-semibold mb-2" style={{ color: 'var(--color-text-secondary)' }}>
-              キーボードショートカット
-            </p>
-            {SHORTCUTS.map((s) => (
-              <div key={s.key} class="flex items-center justify-between py-1">
-                <span class="text-xs" style={{ color: 'var(--color-text-muted)' }}>{s.desc}</span>
-                <kbd
-                  class="text-xs px-1.5 py-0.5 rounded font-mono"
-                  style={{
-                    background: 'var(--color-bg-secondary)',
-                    border: '1px solid var(--color-border)',
-                    color: 'var(--color-text-secondary)',
-                    fontSize: '10px',
-                  }}
-                >
-                  {s.key}
-                </kbd>
-              </div>
-            ))}
-          </div>
-        </>
-      )}
-    </div>
-  );
-}
+import { ShortcutHelp } from './ShortcutHelp';
 
 // エディタの状態を単一の discriminated union で管理
 // selectedId + isCreating の二重管理を廃止し、不正状態を構造的に排除する

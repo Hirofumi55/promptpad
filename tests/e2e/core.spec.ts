@@ -39,6 +39,35 @@ test('初回表示で主要UIとSEOメタが揃う', async ({ page }) => {
   await expectNoRuntimeIssues(issues);
 });
 
+test('使い方ガイドが開閉でき、主要ショートカットが表示される', async ({ page }, testInfo) => {
+  const issues = startRuntimeTracking(page);
+
+  await page.goto('/');
+
+  const helpButton = page.getByRole('button', { name: '使い方ガイドを開く' });
+  await helpButton.click();
+
+  const helpDialog = page.getByRole('dialog', { name: '使い方ガイド' });
+  await expect(helpDialog).toBeVisible();
+  await expect(helpDialog.getByText('キーボードショートカット')).toBeVisible();
+  await expect(helpDialog.getByText('⌘/Ctrl + N')).toBeVisible();
+  await expect(helpDialog.getByText('⌘/Ctrl + F')).toBeVisible();
+
+  if (testInfo.project.name.includes('mobile')) {
+    await helpDialog.getByRole('button', { name: '閉じる' }).click();
+  } else {
+    await page.keyboard.press('Escape');
+  }
+
+  await expect(helpDialog).toHaveCount(0);
+
+  if (!testInfo.project.name.includes('mobile')) {
+    await expect(helpButton).toBeFocused();
+  }
+
+  await expectNoRuntimeIssues(issues);
+});
+
 test('ノートを作成してリロード後も保持される', async ({ page }, testInfo) => {
   const issues = startRuntimeTracking(page);
 
