@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback, useLayoutEffect } from 'preact/hooks';
 import { ArrowLeft, X, Tag, Plus, Save } from 'lucide-preact';
 import type { Note, NoteDraft } from '../types/note';
+import { hasOpenModalDialog } from '../lib/shortcutGuards';
 
 interface Props {
   note: Note | null;
@@ -53,6 +54,7 @@ export function NoteEditor({ note, onSave, onCancel, onBack }: Props) {
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        if (hasOpenModalDialog()) return;
         e.preventDefault();
         onSave(buildDraftForSave());
       }

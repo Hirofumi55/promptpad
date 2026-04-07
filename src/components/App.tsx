@@ -12,16 +12,11 @@ import { animateEditorIn, animateEditorSlideUp } from '../lib/animations';
 import { InstallPrompt } from './InstallPrompt';
 import type { NoteDraft } from '../types/note';
 import { ShortcutHelp } from './ShortcutHelp';
+import { hasOpenModalDialog, isEditableTarget } from '../lib/shortcutGuards';
 
 // エディタの状態を単一の discriminated union で管理
 // selectedId + isCreating の二重管理を廃止し、不正状態を構造的に排除する
 type EditorMode = 'idle' | 'create' | 'edit';
-
-function isEditableTarget(target: EventTarget | null): boolean {
-  if (!(target instanceof HTMLElement)) return false;
-  const tagName = target.tagName;
-  return tagName === 'INPUT' || tagName === 'TEXTAREA' || target.isContentEditable;
-}
 
 export function App() {
   const { notes, sortBy, createNote, updateNote, deleteNote, toggleFavorite, changeSortBy, reorderNotes } = useNotes();
@@ -119,6 +114,8 @@ export function App() {
   // キーボードショートカット（グローバル）
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
+      if (hasOpenModalDialog()) return;
+
       const mod = e.ctrlKey || e.metaKey;
       const isEditing = isEditableTarget(e.target);
 
