@@ -1,29 +1,30 @@
-import { useState } from 'preact/hooks';
-import { Plus, HelpCircle } from 'lucide-preact';
+import { Plus, BookOpen, FileText } from 'lucide-preact';
 import { ThemeToggle } from './ThemeToggle';
-import { HelpModal } from './HelpModal';
+
+export type AppView = 'notes' | 'guide';
 
 interface Props {
+  view: AppView;
+  onViewChange: (v: AppView) => void;
   onNewNote: () => void;
 }
 
-export function Header({ onNewNote }: Props) {
-  const [showHelp, setShowHelp] = useState(false);
-
+export function Header({ view, onViewChange, onNewNote }: Props) {
   return (
-    <>
-      <header
-        class="h-14 flex items-center justify-between px-4 border-b"
-        style={{
-          background: 'var(--glass-bg)',
-          backdropFilter: 'blur(var(--glass-blur))',
-          WebkitBackdropFilter: 'blur(var(--glass-blur))',
-          borderColor: 'var(--color-border)',
-          position: 'sticky',
-          top: 0,
-          zIndex: 40,
-        }}
-      >
+    <header
+      class="flex flex-col border-b"
+      style={{
+        background: 'var(--glass-bg)',
+        backdropFilter: 'blur(var(--glass-blur))',
+        WebkitBackdropFilter: 'blur(var(--glass-blur))',
+        borderColor: 'var(--color-border)',
+        position: 'sticky',
+        top: 0,
+        zIndex: 40,
+      }}
+    >
+      {/* 上段: ロゴ + アクション */}
+      <div class="h-14 flex items-center justify-between px-4">
         {/* ロゴ */}
         <div class="flex items-center gap-2 select-none">
           <span
@@ -45,14 +46,6 @@ export function Header({ onNewNote }: Props) {
 
         {/* アクション */}
         <div class="flex items-center gap-2">
-          <button
-            onClick={() => setShowHelp(true)}
-            aria-label="使い方ガイドを開く"
-            class="w-9 h-9 flex items-center justify-center rounded-lg transition-colors"
-            style={{ color: 'var(--color-text-muted)', border: '1px solid var(--color-border)' }}
-          >
-            <HelpCircle size={16} />
-          </button>
           <ThemeToggle />
           <button
             onClick={onNewNote}
@@ -67,9 +60,43 @@ export function Header({ onNewNote }: Props) {
             <span class="hidden sm:inline">新規</span>
           </button>
         </div>
-      </header>
+      </div>
 
-      {showHelp && <HelpModal onClose={() => setShowHelp(false)} />}
-    </>
+      {/* 下段: タブナビゲーション */}
+      <nav
+        class="flex px-4"
+        role="tablist"
+        aria-label="メインナビゲーション"
+      >
+        <button
+          role="tab"
+          aria-selected={view === 'notes'}
+          onClick={() => onViewChange('notes')}
+          class="flex items-center gap-1.5 px-3 py-2.5 text-sm font-medium border-b-2 transition-colors"
+          style={{
+            color: view === 'notes' ? 'var(--color-accent)' : 'var(--color-text-muted)',
+            borderColor: view === 'notes' ? 'var(--color-accent)' : 'transparent',
+            background: 'transparent',
+          }}
+        >
+          <FileText size={14} />
+          プロンプト
+        </button>
+        <button
+          role="tab"
+          aria-selected={view === 'guide'}
+          onClick={() => onViewChange('guide')}
+          class="flex items-center gap-1.5 px-3 py-2.5 text-sm font-medium border-b-2 transition-colors"
+          style={{
+            color: view === 'guide' ? 'var(--color-accent)' : 'var(--color-text-muted)',
+            borderColor: view === 'guide' ? 'var(--color-accent)' : 'transparent',
+            background: 'transparent',
+          }}
+        >
+          <BookOpen size={14} />
+          使い方
+        </button>
+      </nav>
+    </header>
   );
 }

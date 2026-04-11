@@ -3,8 +3,10 @@ import { useNotes } from '../hooks/useNotes';
 import { useClipboard } from '../hooks/useClipboard';
 import { useSearch } from '../hooks/useSearch';
 import { Header } from './Header';
+import type { AppView } from './Header';
 import { NoteList } from './NoteList';
 import { NoteEditor } from './NoteEditor';
+import { GuidePage } from './GuidePage';
 import { Toast } from './Toast';
 import type { ToastMessage } from './Toast';
 import { TOAST_DURATION_MS } from '../lib/constants';
@@ -33,6 +35,7 @@ export function App() {
     filtered,
   } = useSearch(notes);
 
+  const [view, setView] = useState<AppView>('notes');
   const [mode, setMode] = useState<EditorMode>('idle');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
@@ -59,6 +62,7 @@ export function App() {
   }, []);
 
   const handleNewNote = useCallback(() => {
+    setView('notes');
     setMode('create');
     setEditingId(null);
   }, []);
@@ -143,12 +147,15 @@ export function App() {
       class="flex flex-col"
       style={{ minHeight: '100dvh', background: 'var(--color-bg-primary)' }}
     >
-      <Header onNewNote={handleNewNote} />
+      <Header view={view} onViewChange={setView} onNewNote={handleNewNote} />
 
-      <main class="flex flex-1 overflow-hidden" style={{ height: 'calc(100dvh - 56px)' }}>
-        {/* 左パネル: メモ一覧（モバイルではエディタ表示中に隠す） */}
+      <main class="flex flex-1 overflow-hidden" style={{ height: 'calc(100dvh - 96px)' }}>
+        {/* 使い方ガイドページ（view === 'guide'） */}
+        {view === 'guide' && <GuidePage />}
+
+        {/* 左パネル: メモ一覧（view === 'notes' のみ表示） */}
         <div
-          class={`flex flex-col border-r overflow-hidden shrink-0 lg:w-[400px] ${showEditor ? 'hidden lg:flex' : 'flex w-full'}`}
+          class={`flex flex-col border-r overflow-hidden shrink-0 lg:w-[400px] ${view === 'guide' ? 'hidden' : showEditor ? 'hidden lg:flex' : 'flex w-full'}`}
           style={{
             borderColor: 'var(--color-border)',
             background: 'var(--color-bg-primary)',
@@ -178,10 +185,10 @@ export function App() {
           />
         </div>
 
-        {/* 右パネル: エディタ（モバイルではリスト非表示時にフルスクリーン） */}
+        {/* 右パネル: エディタ（notes ビュー時のみ表示） */}
         <div
           ref={editorPanelRef}
-          class={`flex-1 flex flex-col overflow-hidden ${showEditor ? 'flex' : 'hidden lg:flex'}`}
+          class={`flex-1 flex flex-col overflow-hidden ${view === 'guide' ? 'hidden' : showEditor ? 'flex' : 'hidden lg:flex'}`}
           style={{ background: 'var(--color-bg-secondary)' }}
         >
           {showEditor ? (
