@@ -29,6 +29,9 @@ async function generateIcon(size, outputPath) {
 await generateIcon(192, join(iconDir, 'icon-192.png'));
 await generateIcon(512, join(iconDir, 'icon-512.png'));
 
+// favicon.ico: 32x32 PNG を .ico として出力（ICOコンテナ不要 — ブラウザはPNGデータを受け入れる）
+await generateIcon(32, join(rootDir, 'public/favicon.ico'));
+
 // maskable: safe zone (80%) を確保するため、アイコンを80%に縮小して中央配置
 {
   const size = 512;
@@ -55,6 +58,7 @@ console.log('✓ PWAアイコン生成完了: public/icons/');
 console.log('  - icon-192.png');
 console.log('  - icon-512.png');
 console.log('  - icon-512-maskable.png');
+console.log('✓ favicon.ico 生成完了: public/favicon.ico');
 
 // ---- OGP画像生成 (1200×630) ----
 const ogSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
