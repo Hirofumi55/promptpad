@@ -1,303 +1,141 @@
 /**
- * PWAアイコン生成スクリプト
- * PromptPadブランドカラーのシンプルなPNGアイコンを生成します。
+ * PWAアイコン・OGP画像生成スクリプト
+ * sharp を使って favicon.svg を高品質PNGにレンダリングします。
  * 実行: node scripts/gen-icons.mjs
  */
-import { deflateSync } from 'zlib';
-import { writeFileSync, mkdirSync } from 'fs';
+import sharp from 'sharp';
+import { mkdirSync, readFileSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
+const rootDir = join(__dirname, '..');
+const iconDir = join(rootDir, 'public/icons');
 
-// CRC32 テーブル生成
-const crcTable = new Uint32Array(256);
-for (let i = 0; i < 256; i++) {
-  let c = i;
-  for (let k = 0; k < 8; k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
-  crcTable[i] = c;
-}
-function crc32(buf) {
-  let crc = 0xFFFFFFFF;
-  for (let i = 0; i < buf.length; i++) crc = crcTable[(crc ^ buf[i]) & 0xFF] ^ (crc >>> 8);
-  return (crc ^ 0xFFFFFFFF) >>> 0;
-}
-
-function makeChunk(type, data) {
-  const len = Buffer.alloc(4);
-  len.writeUInt32BE(data.length);
-  const t = Buffer.from(type, 'ascii');
-  const crcBuf = Buffer.alloc(4);
-  crcBuf.writeUInt32BE(crc32(Buffer.concat([t, data])) >>> 0);
-  return Buffer.concat([len, t, data, crcBuf]);
-}
-
-/**
- * PromptPadアイコンPNG生成
- * - インディゴ (#6366f1) 背景
- * - 中央に白い横線3本（プロンプト/テキストを象徴）
- * - 右下に緑のドット（コピー機能を象徴）
- */
-function createIcon(size) {
-  const sig = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]);
-
-  const ihdr = Buffer.alloc(13);
-  ihdr.writeUInt32BE(size, 0);
-  ihdr.writeUInt32BE(size, 4);
-  ihdr[8] = 8;  // ビット深度
-  ihdr[9] = 6;  // カラータイプ: RGBA
-
-  // ピクセルデータ生成
-  const raw = Buffer.alloc((1 + size * 4) * size);
-
-  // 背景色: インディゴ #6366f1 = rgb(99, 102, 241)
-  const [bgR, bgG, bgB] = [99, 102, 241];
-
-  // 白い横線の定義（相対座標）
-  const lineW = Math.round(size * 0.56);  // 線の幅
-  const lineH = Math.round(size * 0.06);  // 線の高さ
-  const lineX = Math.round(size * 0.19);  // 線の開始X
-  const lineGap = Math.round(size * 0.14); // 線間隔
-  const linesStartY = Math.round(size * 0.30); // 最初の線のY
-
-  // 緑ドット (#34d399) の定義
-  const dotR = 52, dotG = 211, dotB = 153;
-  const dotRadius = Math.round(size * 0.13);
-  const dotCX = Math.round(size * 0.76);
-  const dotCY = Math.round(size * 0.73);
-
-  for (let y = 0; y < size; y++) {
-    const rowStart = y * (1 + size * 4);
-    raw[rowStart] = 0; // フィルター: None
-
-    for (let x = 0; x < size; x++) {
-      const px = rowStart + 1 + x * 4;
-      let r = bgR, g = bgG, b = bgB, a = 255;
-
-      // 角丸マスク（radius = size * 0.2）
-      const radius = size * 0.2;
-      const dx = Math.min(x, size - 1 - x);
-      const dy = Math.min(y, size - 1 - y);
-      if (dx < radius && dy < radius) {
-        const cx = radius - dx, cy = radius - dy;
-        if (cx * cx + cy * cy > radius * radius) {
-          a = 0; // 角を透過
-        }
-      }
-
-      if (a > 0) {
-        // 白い横線
-        for (let li = 0; li < 3; li++) {
-          const lineY = linesStartY + li * lineGap;
-          // 3本目の線は少し短く
-          const thisLineW = li === 2 ? Math.round(lineW * 0.7) : lineW;
-          if (y >= lineY && y < lineY + lineH && x >= lineX && x < lineX + thisLineW) {
-            r = 255; g = 255; b = 255;
-          }
-        }
-
-        // 緑ドット
-        const distX = x - dotCX, distY = y - dotCY;
-        if (distX * distX + distY * distY <= dotRadius * dotRadius) {
-          r = dotR; g = dotG; b = dotB;
-        }
-      }
-
-      raw[px] = r;
-      raw[px + 1] = g;
-      raw[px + 2] = b;
-      raw[px + 3] = a;
-    }
-  }
-
-  const idat = deflateSync(raw, { level: 6 });
-
-  return Buffer.concat([
-    sig,
-    makeChunk('IHDR', ihdr),
-    makeChunk('IDAT', idat),
-    makeChunk('IEND', Buffer.alloc(0)),
-  ]);
-}
-
-/**
- * OGP/Twitter Card用画像生成 (1200×630)
- * - ダークインディゴ背景 (#0f172a)
- * - 中央左にアイコン (192px相当)
- * - 右側に横線パターン（プロンプト/テキストを象徴）
- * - アクセントカラーのドット群
- */
-function createOgImage() {
-  const W = 1200, H = 630;
-  const sig = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]);
-
-  const ihdr = Buffer.alloc(13);
-  ihdr.writeUInt32BE(W, 0);
-  ihdr.writeUInt32BE(H, 4);
-  ihdr[8] = 8;
-  ihdr[9] = 6; // RGBA
-
-  const raw = Buffer.alloc((1 + W * 4) * H);
-
-  // 背景色: #0f172a = rgb(15, 23, 42)
-  const [bgR, bgG, bgB] = [15, 23, 42];
-  // アクセント: インディゴ #6366f1 = rgb(99, 102, 241)
-  const [acR, acG, acB] = [99, 102, 241];
-  // セカンダリ: スレート #1e293b = rgb(30, 41, 59)
-  const [s2R, s2G, s2B] = [30, 41, 59];
-  // グリーン: #34d399 = rgb(52, 211, 153)
-  const [grR, grG, grB] = [52, 211, 153];
-  // 白
-  const [wR, wG, wB] = [255, 255, 255];
-
-  // ---- アイコン領域 (左寄せ中央): 中心 (320, 315), サイズ 192px ----
-  const iconCX = 320, iconCY = 315, iconSize = 192;
-  const iconX0 = iconCX - iconSize / 2, iconY0 = iconCY - iconSize / 2;
-
-  // アイコン内部定義（createIconのロジックを再利用）
-  const iS = iconSize;
-  const iLineW = Math.round(iS * 0.56);
-  const iLineH = Math.round(iS * 0.06);
-  const iLineX = Math.round(iS * 0.19);
-  const iLineGap = Math.round(iS * 0.14);
-  const iLinesStartY = Math.round(iS * 0.30);
-  const iDotRadius = Math.round(iS * 0.13);
-  const iDotCX = Math.round(iS * 0.76);
-  const iDotCY = Math.round(iS * 0.73);
-
-  // ---- 右側テキスト行パターン ----
-  // x: 560〜1140, 計6行
-  const textLines = [
-    { y: 220, w: 520, h: 14, alpha: 200 },
-    { y: 252, w: 460, h: 14, alpha: 200 },
-    { y: 284, w: 490, h: 14, alpha: 200 },
-    { y: 340, w: 380, h: 10, alpha: 140 },
-    { y: 362, w: 420, h: 10, alpha: 140 },
-    { y: 384, w: 360, h: 10, alpha: 140 },
-  ];
-
-  // ---- グリーンドット群 ----
-  const dots = [
-    { cx: 1100, cy: 460, r: 22 },
-    { cx: 1140, cy: 420, r: 12 },
-    { cx: 1060, cy: 490, r: 8 },
-  ];
-
-  // ---- インディゴ装飾円（薄め） ----
-  const decorCircles = [
-    { cx: 1160, cy: 80, r: 120, a: 20 },
-    { cx: 60, cy: 570, r: 80, a: 15 },
-  ];
-
-  for (let y = 0; y < H; y++) {
-    const rowStart = y * (1 + W * 4);
-    raw[rowStart] = 0;
-
-    for (let x = 0; x < W; x++) {
-      const px = rowStart + 1 + x * 4;
-      let r = bgR, g = bgG, b = bgB, a = 255;
-
-      // 装飾円（薄いインディゴ）
-      for (const dc of decorCircles) {
-        const dx = x - dc.cx, dy = y - dc.cy;
-        if (dx * dx + dy * dy <= dc.r * dc.r) {
-          r = Math.min(255, r + acR * dc.a / 255);
-          g = Math.min(255, g + acG * dc.a / 255);
-          b = Math.min(255, b + acB * dc.a / 255);
-        }
-      }
-
-      // 仕切り線 (x=500 付近)
-      if (x >= 496 && x <= 500) {
-        r = s2R + 20; g = s2G + 20; b = s2B + 20;
-      }
-
-      // 右側テキスト行パターン
-      const lx = x - 560;
-      if (lx >= 0) {
-        for (const line of textLines) {
-          if (y >= line.y && y < line.y + line.h && lx < line.w) {
-            // ブレンド: ライン色 (スレート明るめ) と背景をアルファブレンド
-            const la = line.alpha / 255;
-            r = Math.round(r * (1 - la) + (s2R + 30) * la);
-            g = Math.round(g * (1 - la) + (s2G + 30) * la);
-            b = Math.round(b * (1 - la) + (s2B + 30) * la);
-          }
-        }
-      }
-
-      // グリーンドット群
-      for (const dot of dots) {
-        const dx = x - dot.cx, dy = y - dot.cy;
-        if (dx * dx + dy * dy <= dot.r * dot.r) {
-          r = grR; g = grG; b = grB;
-        }
-      }
-
-      // アイコン描画
-      const ix = x - iconX0, iy = y - iconY0;
-      if (ix >= 0 && ix < iS && iy >= 0 && iy < iS) {
-        let ir = acR, ig = acG, ib = acB, ia = 255;
-
-        // 角丸マスク
-        const radius = iS * 0.2;
-        const dx = Math.min(ix, iS - 1 - ix);
-        const dy2 = Math.min(iy, iS - 1 - iy);
-        if (dx < radius && dy2 < radius) {
-          const cx = radius - dx, cy = radius - dy2;
-          if (cx * cx + cy * cy > radius * radius) ia = 0;
-        }
-
-        if (ia > 0) {
-          // 白い横線
-          for (let li = 0; li < 3; li++) {
-            const lineY = iLinesStartY + li * iLineGap;
-            const thisW = li === 2 ? Math.round(iLineW * 0.7) : iLineW;
-            if (iy >= lineY && iy < lineY + iLineH && ix >= iLineX && ix < iLineX + thisW) {
-              ir = wR; ig = wG; ib = wB;
-            }
-          }
-          // 緑ドット
-          const ddx = ix - iDotCX, ddy = iy - iDotCY;
-          if (ddx * ddx + ddy * ddy <= iDotRadius * iDotRadius) {
-            ir = grR; ig = grG; ib = grB;
-          }
-          // アルファブレンド（角丸部分は透過なので、非透過部分はそのまま上書き）
-          r = ir; g = ig; b = ib;
-        }
-      }
-
-      raw[px] = r;
-      raw[px + 1] = g;
-      raw[px + 2] = b;
-      raw[px + 3] = a;
-    }
-  }
-
-  const idat = deflateSync(raw, { level: 6 });
-  return Buffer.concat([
-    sig,
-    makeChunk('IHDR', ihdr),
-    makeChunk('IDAT', idat),
-    makeChunk('IEND', Buffer.alloc(0)),
-  ]);
-}
-
-const iconDir = join(__dirname, '../public/icons');
 mkdirSync(iconDir, { recursive: true });
 
-const icon192 = createIcon(192);
-const icon512 = createIcon(512);
+// favicon.svg を読み込む
+const svgPath = join(rootDir, 'public/favicon.svg');
+const svgBuffer = readFileSync(svgPath);
 
-writeFileSync(join(iconDir, 'icon-192.png'), icon192);
-writeFileSync(join(iconDir, 'icon-512.png'), icon512);
-writeFileSync(join(iconDir, 'icon-512-maskable.png'), icon512);
+// ---- PWAアイコン生成 ----
+async function generateIcon(size, outputPath) {
+  await sharp(svgBuffer, { density: Math.ceil(size * 3) })
+    .resize(size, size)
+    .png({ compressionLevel: 9, adaptiveFiltering: true })
+    .toFile(outputPath);
+}
 
-const ogImage = createOgImage();
-writeFileSync(join(__dirname, '../public/og-image.png'), ogImage);
+await generateIcon(192, join(iconDir, 'icon-192.png'));
+await generateIcon(512, join(iconDir, 'icon-512.png'));
+
+// maskable: safe zone (80%) を確保するため、アイコンを80%に縮小して中央配置
+{
+  const size = 512;
+  const innerSize = Math.round(size * 0.8);
+  const offset = Math.round((size - innerSize) / 2);
+  const innerBuf = await sharp(svgBuffer, { density: Math.ceil(innerSize * 3) })
+    .resize(innerSize, innerSize)
+    .png()
+    .toBuffer();
+  await sharp({
+    create: {
+      width: size,
+      height: size,
+      channels: 4,
+      background: { r: 99, g: 102, b: 241, alpha: 1 }, // #6366f1
+    },
+  })
+    .composite([{ input: innerBuf, top: offset, left: offset }])
+    .png({ compressionLevel: 9 })
+    .toFile(join(iconDir, 'icon-512-maskable.png'));
+}
 
 console.log('✓ PWAアイコン生成完了: public/icons/');
 console.log('  - icon-192.png');
 console.log('  - icon-512.png');
 console.log('  - icon-512-maskable.png');
+
+// ---- OGP画像生成 (1200×630) ----
+const ogSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <defs>
+    <linearGradient id="bgGrad" x1="0" y1="0" x2="1200" y2="630" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#0f172a"/>
+      <stop offset="100%" stop-color="#1e293b"/>
+    </linearGradient>
+    <linearGradient id="iconBg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#818cf8"/>
+      <stop offset="100%" stop-color="#6366f1"/>
+    </linearGradient>
+  </defs>
+
+  <!-- 背景 -->
+  <rect width="1200" height="630" fill="url(#bgGrad)"/>
+
+  <!-- 装飾: 右上の薄い円 -->
+  <circle cx="1100" cy="80" r="200" fill="#6366f1" opacity="0.06"/>
+  <!-- 装飾: 左下の薄い円 -->
+  <circle cx="100" cy="580" r="140" fill="#818cf8" opacity="0.05"/>
+  <!-- 区切り線 -->
+  <rect x="580" y="0" width="1" height="630" fill="#334155" opacity="0.6"/>
+
+  <!-- 左エリア: アイコン -->
+  <rect x="80" y="195" width="160" height="160" rx="36" fill="url(#iconBg)"/>
+  <rect x="80" y="195" width="160" height="80" rx="36" fill="white" opacity="0.1"/>
+  <!-- テキスト行 -->
+  <rect x="112" y="247" width="95" height="16" rx="8" fill="white" opacity="0.95"/>
+  <rect x="112" y="277" width="70" height="16" rx="8" fill="white" opacity="0.85"/>
+  <rect x="112" y="307" width="82" height="16" rx="8" fill="white" opacity="0.75"/>
+  <!-- コピードット -->
+  <circle cx="218" cy="330" r="28" fill="#34d399"/>
+  <path d="M206 330l9 9 18-18" stroke="white" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+
+  <!-- アプリ名 -->
+  <text x="80" y="432" font-family="system-ui,-apple-system,sans-serif" font-size="72" font-weight="700" fill="white" opacity="0.95">PromptPad</text>
+  <!-- キャッチコピー -->
+  <text x="80" y="490" font-family="system-ui,-apple-system,sans-serif" font-size="28" font-weight="400" fill="#94a3b8">AIプロンプトの作成・管理・ワンクリックコピー</text>
+
+  <!-- 右エリア: プロンプトカードイメージ -->
+  <!-- カード1 -->
+  <rect x="620" y="80" width="520" height="130" rx="16" fill="#1e293b" stroke="#334155" stroke-width="1"/>
+  <rect x="650" y="108" width="200" height="14" rx="7" fill="#818cf8" opacity="0.8"/>
+  <rect x="650" y="134" width="460" height="10" rx="5" fill="#475569" opacity="0.7"/>
+  <rect x="650" y="154" width="380" height="10" rx="5" fill="#475569" opacity="0.5"/>
+  <rect x="650" y="174" width="420" height="10" rx="5" fill="#475569" opacity="0.4"/>
+  <circle cx="1098" cy="108" r="18" fill="#34d399" opacity="0.9"/>
+  <path d="M1090 108l5 5 10-10" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+
+  <!-- カード2 (選択状態) -->
+  <rect x="620" y="230" width="520" height="130" rx="16" fill="#1e293b" stroke="#6366f1" stroke-width="1.5"/>
+  <rect x="650" y="258" width="160" height="14" rx="7" fill="#a5b4fc" opacity="0.9"/>
+  <rect x="650" y="284" width="460" height="10" rx="5" fill="#475569" opacity="0.7"/>
+  <rect x="650" y="304" width="310" height="10" rx="5" fill="#475569" opacity="0.5"/>
+  <rect x="650" y="324" width="400" height="10" rx="5" fill="#475569" opacity="0.4"/>
+  <circle cx="1098" cy="258" r="18" fill="#6366f1" opacity="0.9"/>
+
+  <!-- カード3 -->
+  <rect x="620" y="380" width="520" height="130" rx="16" fill="#1e293b" stroke="#334155" stroke-width="1"/>
+  <rect x="650" y="408" width="180" height="14" rx="7" fill="#818cf8" opacity="0.6"/>
+  <rect x="650" y="434" width="440" height="10" rx="5" fill="#475569" opacity="0.5"/>
+  <rect x="650" y="454" width="360" height="10" rx="5" fill="#475569" opacity="0.4"/>
+  <rect x="650" y="474" width="410" height="10" rx="5" fill="#475569" opacity="0.3"/>
+
+  <!-- タグバッジ群 -->
+  <rect x="650" y="200" width="60" height="22" rx="11" fill="#312e81" opacity="0.8"/>
+  <text x="680" y="215" font-family="system-ui,sans-serif" font-size="12" fill="#a5b4fc" text-anchor="middle">SEO</text>
+  <rect x="720" y="200" width="90" height="22" rx="11" fill="#312e81" opacity="0.8"/>
+  <text x="765" y="215" font-family="system-ui,sans-serif" font-size="12" fill="#a5b4fc" text-anchor="middle">ブログ執筆</text>
+
+  <!-- グリーン装飾ドット群 -->
+  <circle cx="1110" cy="530" r="16" fill="#34d399" opacity="0.7"/>
+  <circle cx="1145" cy="500" r="9" fill="#34d399" opacity="0.5"/>
+  <circle cx="1078" cy="555" r="6" fill="#34d399" opacity="0.4"/>
+</svg>`;
+
+const ogBuffer = Buffer.from(ogSvg, 'utf-8');
+await sharp(ogBuffer, { density: 150 })
+  .resize(1200, 630)
+  .png({ compressionLevel: 9 })
+  .toFile(join(rootDir, 'public/og-image.png'));
+
 console.log('✓ OGP画像生成完了: public/og-image.png');
