@@ -148,7 +148,7 @@ export function App() {
       <main class="flex flex-1 overflow-hidden" style={{ height: 'calc(100dvh - 56px)' }}>
         {/* 左パネル: メモ一覧（モバイルではエディタ表示中に隠す） */}
         <div
-          class={`flex flex-col border-r overflow-hidden shrink-0 lg:w-80 ${showEditor ? 'hidden lg:flex' : 'flex w-full'}`}
+          class={`flex flex-col border-r overflow-hidden shrink-0 lg:w-[400px] ${showEditor ? 'hidden lg:flex' : 'flex w-full'}`}
           style={{
             borderColor: 'var(--color-border)',
             background: 'var(--color-bg-primary)',
